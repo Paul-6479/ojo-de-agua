@@ -452,13 +452,18 @@ Codex (Codex lee `AGENTS.md`, no este archivo — mantener ambos en sincronía).
 - ⚠️ **Next.js 16 tiene cambios de ruptura** respecto a lo que los modelos traen
   aprendido. Ver `AGENTS.md` (importado arriba): antes de escribir código, leer
   la guía correspondiente en `node_modules/next/dist/docs/`.
-- ✅ **`git init` ya se hizo en este directorio** (2026-09-13). Antes git
-  detectaba el repositorio accidental del *home*. Nunca commitear desde la raíz
-  del home. Aún no hay ningún commit.
-- ⚠️ **`~/Documents` se sincroniza con iCloud** en esta máquina. Ya causó
-  problemas con entornos virtuales de Python en otro proyecto. Para Node no ha
-  dado problemas, pero si aparecen rarezas con `node_modules`, esa es la primera
-  sospecha.
+- ✅ **Repositorio git propio con commit base** (2026-09-13, `8677228`). Antes
+  git detectaba el repositorio accidental del *home*; nunca commitear desde ahí.
+  Revisar cada entrega de Codex con `git diff` contra el último commit.
+- 🔴 **iCloud evacúa archivos de `node_modules`** (`~/Documents` se sincroniza).
+  Confirmado el 2026-09-13: `ls -lO node_modules/next/dist/bin/next` mostró
+  `dataless`, y eso produjo builds erráticos (pánico de Turbopack, TypeScript de
+  4 min, `next build` saliendo con 0 sin hacer nada). **Síntoma → remedio:**
+  si un build falla raro, correr `rm -rf node_modules .next && npm install`.
+  El truco `node_modules.nosync` + enlace simbólico **no funciona**: npm
+  reemplaza el enlace en cada `npm install`. Solución real pendiente del autor:
+  mover el proyecto fuera de `~/Documents` o desactivar «Optimizar
+  almacenamiento del Mac» en Ajustes → iCloud.
 
 ---
 
