@@ -188,6 +188,17 @@ Dos cosas que aprendimos a la mala:
 - *Deployment Protection* viene activada y manda al login de Vercel; para un
   sitio público hay que apagarla en *Settings → Deployment Protection*.
 
+## Más documentación
+
+- [`docs/arquitectura.md`](./docs/arquitectura.md) — qué se construyó, cómo
+  está armado y por qué (documento técnico para la materia).
+- [`docs/operacion.md`](./docs/operacion.md) — guía de operación: despertar
+  Supabase, aplicar esquema y semilla, desplegar, moderar a mano, diagnóstico.
+- [`/privacidad`](https://ojo-de-agua-ruby.vercel.app/privacidad) — aviso de
+  privacidad publicado en el sitio.
+- [`CLAUDE.md`](./CLAUDE.md) — plan completo y traspaso entre sesiones de
+  trabajo asistido.
+
 ## Licencia y contacto
 
 Proyecto académico individual. Para solicitar el retiro de una foto o reportar

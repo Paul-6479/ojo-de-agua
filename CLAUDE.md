@@ -409,7 +409,7 @@ baja llamadas al conmutador.
 | **5** | Portada de impacto: litros estimados perdidos, reportes sin atender, días promedio, ranking de colonias. **Es la semana que da la calificación.** | ⬜ |
 | **6** | Comunicación bidireccional: avisos de cortes y tandeo con zona afectada en el mapa | ⬜ |
 | **7** | Pulido: identidad visual, PWA, cola offline, accesibilidad, prueba en teléfono real bajo el sol | ⬜ |
-| **8** | Cierre: datos semilla reales, documentación, aviso de privacidad, deslinde, ensayo de presentación | ⬜ |
+| **8** | Cierre: datos semilla reales, documentación, aviso de privacidad, deslinde, ensayo de presentación | 🟡 adelantado: `docs/arquitectura.md`, `docs/operacion.md` y `/privacidad` existen desde 2026-09-14 |
 
 ---
 
