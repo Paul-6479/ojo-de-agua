@@ -455,15 +455,12 @@ Codex (Codex lee `AGENTS.md`, no este archivo — mantener ambos en sincronía).
 - ✅ **Repositorio git propio con commit base** (2026-09-13, `8677228`). Antes
   git detectaba el repositorio accidental del *home*; nunca commitear desde ahí.
   Revisar cada entrega de Codex con `git diff` contra el último commit.
-- 🔴 **iCloud evacúa archivos de `node_modules`** (`~/Documents` se sincroniza).
-  Confirmado el 2026-09-13: `ls -lO node_modules/next/dist/bin/next` mostró
-  `dataless`, y eso produjo builds erráticos (pánico de Turbopack, TypeScript de
-  4 min, `next build` saliendo con 0 sin hacer nada). **Síntoma → remedio:**
-  si un build falla raro, correr `rm -rf node_modules .next && npm install`.
-  El truco `node_modules.nosync` + enlace simbólico **no funciona**: npm
-  reemplaza el enlace en cada `npm install`. Solución real pendiente del autor:
-  mover el proyecto fuera de `~/Documents` o desactivar «Optimizar
-  almacenamiento del Mac» en Ajustes → iCloud.
+- ✅ **El proyecto vive en `~/Visual Studio Code/ojo-de-agua`, FUERA de iCloud**
+  (movido el 2026-09-13). Antes estaba en `~/Documents/...` e iCloud evacuaba
+  archivos de `node_modules` (`ls -lO` los mostraba `dataless`), lo que produjo
+  builds erráticos. **No volver a mover el proyecto a `~/Documents` ni
+  `~/Desktop`.** Si algún día un build falla raro, el remedio sigue siendo
+  `rm -rf node_modules .next && npm install`.
 
 ---
 
