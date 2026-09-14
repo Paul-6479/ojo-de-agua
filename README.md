@@ -22,9 +22,10 @@ En México un *ojo de agua* es un manantial; "ojo" también es vigilancia.
 
 ## Estado del proyecto
 
-🟡 **En construcción (semana 1 de 8).** Por ahora solo existe la base de
-Next.js. Lo que sigue: esquema de base de datos, mapa con datos de ejemplo,
-flujo de reporte. Ver el plan completo en [`CLAUDE.md`](./CLAUDE.md).
+🟡 **En construcción (semana 1 de 8).** Ya están el esquema PostGIS con RLS,
+los tipos y cliente de Supabase, y el mapa MapLibre con 16 reportes de ejemplo
+filtrables. Lo que sigue es el flujo para crear un reporte. Ver el plan completo
+en [`CLAUDE.md`](./CLAUDE.md).
 
 ## Stack
 
@@ -94,7 +95,8 @@ componente ni la subas al repositorio.
 ```
 db/schema.sql            Esquema de la base de datos, comentado en español
 src/app/                 Páginas (App Router de Next.js)
-src/components/          Componentes de interfaz (mapa, formulario, etc.)
+src/components/Mapa.tsx      Mapa MapLibre con agrupamiento de reportes
+src/components/Filtros.tsx   Chips para filtrar el mapa en memoria
 src/lib/supabase.ts      Cliente de Supabase
 src/lib/tipos.ts         Tipos TypeScript espejo del esquema
 src/lib/datosEjemplo.ts  Reportes de ejemplo para la demo (marcados como tales)

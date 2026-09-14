@@ -449,6 +449,18 @@ baja llamadas al conmutador.
 Codex (Codex lee `AGENTS.md`, no este archivo — mantener ambos en sincronía).
 
 ### Advertencias técnicas
+- ⚠️ **MapLibre 6 + Turbopack: el worker no arranca solo.** MapLibre localiza
+  su web worker con `import.meta.url`, y Turbopack no le da una URL http, así
+  que el mapa queda en blanco **sin ningún error en consola** (tiles y puntos
+  nunca llegan). Solución ya aplicada: `scripts/copiar-worker-maplibre.mjs`
+  copia el worker a `public/maplibre/` (ignorado por git) en `predev`/`prebuild`,
+  y `Mapa.tsx` llama `maplibregl.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs")`.
+  No quitar ninguna de las dos piezas.
+- ⚠️ **`h-full` dentro de un hijo `flex-1` mide 0.** El contenedor del mapa usa
+  `absolute inset-0` dentro de una sección `relative`.
+- ℹ️ La prueba visual se hace con la extensión de Chrome (`mcp__claude-in-chrome`).
+  El autor tiene **Dark Reader** instalado: oscurece la página y provoca un
+  aviso de hidratación en la consola de Next. No es un bug del proyecto.
 - ⚠️ **Next.js 16 tiene cambios de ruptura** respecto a lo que los modelos traen
   aprendido. Ver `AGENTS.md` (importado arriba): antes de escribir código, leer
   la guía correspondiente en `node_modules/next/dist/docs/`.
