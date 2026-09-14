@@ -9,6 +9,8 @@ import type {
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { reportesAGeoJSON } from "@/lib/datosEjemplo";
+// Límites municipales reales (OpenStreetMap, simplificados a ~40 m). Ver README.
+import municipios from "@/lib/municipios.json";
 import {
   CATALOGO_ESTATUS,
   CATALOGO_TIPOS,
@@ -26,12 +28,21 @@ const CAPA_CLUSTERS = "circulos-cluster";
 const CAPA_NUMERO_CLUSTER = "numero-cluster";
 const CAPA_PUNTOS = "puntos-individuales";
 
-// Centro de la conurbación y límites holgados para que nadie se pierda arrastrando el mapa.
-const CENTRO_CONURBACION: [number, number] = [-97.8686, 22.2553];
-const LIMITES_CONURBACION: [[number, number], [number, number]] = [
-  [-98.03, 22.14],
-  [-97.73, 22.49],
+// Vista inicial: la zona urbana de Tampico, Ciudad Madero y Altamira. El
+// municipio de Altamira sigue 50 km más al norte, casi todo rural; si la vista
+// lo abarcara completo, la ciudad se vería diminuta.
+const VISTA_INICIAL: [[number, number], [number, number]] = [
+  [-98.0, 22.2],
+  [-97.78, 22.44],
 ];
+// Hasta dónde se puede arrastrar el mapa: los tres municipios completos, con
+// margen. Si este rectángulo fuera más angosto que la pantalla, MapLibre
+// ignoraría la vista inicial y centraría aquí.
+const LIMITES_CONURBACION: [[number, number], [number, number]] = [
+  [-98.9, 21.9],
+  [-97.2, 23.0],
+];
+const FUENTE_MUNICIPIOS = "municipios";
 
 // Expresión de MapLibre: "según el valor de `estatus`, usa este color".
 // Se construye a partir del catálogo para no repetir los colores aquí.
@@ -129,8 +140,8 @@ export default function Mapa({ reportes, alSeleccionar }: MapaProps) {
     const nuevoMapa = new maplibregl.Map({
       container: contenedorMapa.current,
       style: estilo,
-      center: CENTRO_CONURBACION,
-      zoom: 12,
+      bounds: VISTA_INICIAL,
+      fitBoundsOptions: { padding: 16 },
       maxBounds: LIMITES_CONURBACION,
     });
     mapa.current = nuevoMapa;
@@ -146,6 +157,29 @@ export default function Mapa({ reportes, alSeleccionar }: MapaProps) {
     );
 
     nuevoMapa.on("load", () => {
+      // Contorno de cada municipio, debajo de los reportes. Los nombres de las
+      // ciudades ya los pinta el mapa base de MapTiler.
+      nuevoMapa.addSource(FUENTE_MUNICIPIOS, {
+        type: "geojson",
+        data: municipios as GeoJSON.FeatureCollection,
+      });
+      nuevoMapa.addLayer({
+        id: "relleno-municipios",
+        type: "fill",
+        source: FUENTE_MUNICIPIOS,
+        paint: { "fill-color": "#0369a1", "fill-opacity": 0.05 },
+      });
+      nuevoMapa.addLayer({
+        id: "contorno-municipios",
+        type: "line",
+        source: FUENTE_MUNICIPIOS,
+        paint: {
+          "line-color": "#0c4a6e",
+          "line-width": 2,
+          "line-dasharray": [3, 2],
+        },
+      });
+
       nuevoMapa.addSource(FUENTE_REPORTES, {
         type: "geojson",
         data: reportesAGeoJSON(reportesRecientes.current),

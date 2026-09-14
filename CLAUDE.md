@@ -433,6 +433,13 @@ baja llamadas al conmutador.
   `rechazado` e invisible) → inserta `reporte` + `evento_reporte`.
 - `POST /api/reportes/[id]/foto`: solo con el token del creador, máx. 3 fotos.
 - Primer reporte real en la base: `OJO-2026-0001`.
+- **Límites municipales reales** (2026-09-13): `src/lib/municipios.json` con
+  los polígonos de OSM (ODbL) de Tampico, Madero y Altamira; el mapa los
+  dibuja como contorno punteado y arranca con `bounds` sobre la zona urbana
+  (Altamira el municipio mide 1 663 km², casi todo rural: no encuadrar
+  completo). La tabla `municipio` en Supabase ya tiene estos polígonos en
+  lugar de los rectángulos. Ojo: `maxBounds` debe ser bastante más ancho que
+  la vista inicial, o MapLibre ignora `bounds` en pantallas anchas.
 
 **Lecciones de la tanda 2 de Codex** (errores que Claude corrigió a mano):
 - El honeypot rechazaba cuando el campo venía `undefined`; debe rechazar solo

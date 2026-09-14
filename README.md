@@ -134,3 +134,12 @@ mismas cuatro variables de entorno en *Settings → Environment Variables*.
 
 Proyecto académico individual. Para solicitar el retiro de una foto o reportar
 un problema con el sitio, abre un *issue* en este repositorio.
+
+## Límites municipales
+
+`src/lib/municipios.json` contiene los polígonos de Tampico, Ciudad Madero y
+Altamira tomados de OpenStreetMap (relaciones `admin_level=6`, licencia ODbL,
+simplificados a ~40 m). Se usan para dibujar los contornos en el mapa y, en
+`db/schema.sql`, para que la tabla `municipio` tenga los límites reales con los
+que se decide si un reporte cae dentro de la zona conurbada. Para regenerarlos
+basta con volver a consultar Overpass y reemplazar el archivo.
