@@ -464,6 +464,12 @@ Codex (Codex lee `AGENTS.md`, no este archivo — mantener ambos en sincronía).
 - ⚠️ **Next.js 16 tiene cambios de ruptura** respecto a lo que los modelos traen
   aprendido. Ver `AGENTS.md` (importado arriba): antes de escribir código, leer
   la guía correspondiente en `node_modules/next/dist/docs/`.
+- ✅ **Repositorio remoto:** `https://github.com/Paul-6479/ojo-de-agua` (privado,
+  creado 2026-09-13). Cada semana cerrada se sube con `git push` a `main`.
+  `.env.local` nunca se sube; `.mcp.json` sí (solo trae el `project_ref`).
+- ✅ **Supabase:** proyecto `cadfgpbbweztplthgdio`, conectado por MCP
+  (`.mcp.json`). Pendiente al 2026-09-13: aplicar `db/schema.sql`, clave
+  secreta y clave de MapTiler en `.env.local`.
 - ✅ **Repositorio git propio con commit base** (2026-09-13, `8677228`). Antes
   git detectaba el repositorio accidental del *home*; nunca commitear desde ahí.
   Revisar cada entrega de Codex con `git diff` contra el último commit.
