@@ -402,7 +402,7 @@ baja llamadas al conmutador.
 
 | Semana | Entrega | Estado |
 |---|---|---|
-| **1** | Cimientos: Next.js desplegado en Vercel, esquema con PostGIS aplicado en Supabase, mapa MapLibre centrado en la conurbación con datos de ejemplo | ✅ (falta solo el despliegue en Vercel) |
+| **1** | Cimientos: Next.js desplegado en Vercel, esquema con PostGIS aplicado en Supabase, mapa MapLibre centrado en la conurbación con datos de ejemplo | ✅ (desplegado en Vercel el 2026-09-14) |
 | **2** | Reportar: GPS + pin arrastrable, catálogo con iconos, foto comprimida sin EXIF, guardado real en Supabase, folio | ✅ 2026-09-13 |
 | **3** | Ver y seguir: ficha pública con bitácora, consulta por folio, botón «yo también», detección preventiva de duplicados | ⬜ |
 | **4** | Panel de operador (fase B simulada): login, roles, bandeja, cambio de estatus con nota, fecha estimada, cierre con evidencia | ⬜ |
@@ -501,6 +501,19 @@ Codex (Codex lee `AGENTS.md`, no este archivo — mantener ambos en sincronía).
 - ⚠️ **Next.js 16 tiene cambios de ruptura** respecto a lo que los modelos traen
   aprendido. Ver `AGENTS.md` (importado arriba): antes de escribir código, leer
   la guía correspondiente en `node_modules/next/dist/docs/`.
+- ✅ **Vercel (2026-09-14):** proyecto `ojo-de-agua` en el equipo `ph-c90a`
+  (plan Hobby), conectado al repo de GitHub: **cada `git push` a `main`
+  despliega producción solo.** URL pública: `https://ojo-de-agua-ruby.vercel.app`.
+  Las 4 variables de `.env.local` están cargadas en Production y Preview
+  (`SUPABASE_SERVICE_ROLE_KEY` como *Secret*). Deployment Protection está
+  **apagada** a propósito (sitio público). Lecciones:
+  - `vercel deploy` desde CLI se queda en `UNKNOWN`/`BLOCKED`; usar siempre
+    la vía de GitHub (`git push`).
+  - Hobby bloquea despliegues (`COMMIT_AUTHOR_REQUIRED`) si el autor del
+    commit no es una cuenta de GitHub del dueño. Git debe usar
+    `paul.huertam@gmail.com` (ya configurado en `--global`).
+  - `.vercel/` está ignorado por git; `vercel link` añade `VERCEL_OIDC_TOKEN`
+    a `.env.local`, es inofensivo.
 - ✅ **Repositorio remoto:** `https://github.com/Paul-6479/ojo-de-agua` (privado,
   creado 2026-09-13). Cada semana cerrada se sube con `git push` a `main`.
   `.env.local` nunca se sube; `.mcp.json` sí (solo trae el `project_ref`).
