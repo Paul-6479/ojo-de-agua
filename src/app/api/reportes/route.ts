@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
+import { hashSha256 } from "@/lib/hash";
+import { revisarYRegistrarIntento } from "@/lib/limiteTasa";
 import { crearClientePublico, crearClienteServidor } from "@/lib/supabase";
 import type { ReportePublico } from "@/lib/tipos";
 import { validarReporte } from "@/lib/validarReporte";
-
-async function hashSha256(texto: string) {
-  const bytes = new TextEncoder().encode(texto);
-  const resumen = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(resumen), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
 
 function respuestaError(mensaje: string, estatus = 500) {
   return NextResponse.json({ ok: false, error: mensaje }, { status: estatus });
@@ -61,33 +57,17 @@ export async function POST(solicitud: Request) {
     }
 
     const datos = validacion.datos;
-    const hashDispositivo = await hashSha256(datos.token);
-    // La columna ip es de tipo inet: si no conocemos la IP se guarda null, no un texto.
-    const ip = solicitud.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+    const hashDispositivo = hashSha256(datos.token);
     const supabase = crearClienteServidor();
-    const haceDiezMinutos = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-    const { count: cantidadIntentos, error: errorIntentos } = await supabase
-      .from("intento")
-      .select("id", { count: "exact", head: true })
-      .gte("creado_en", haceDiezMinutos)
-      .or(ip ? `hash_dispositivo.eq.${hashDispositivo},ip.eq.${ip}` : `hash_dispositivo.eq.${hashDispositivo}`);
-
-    if (errorIntentos) {
-      console.error("No se pudo revisar el límite de tasa:", errorIntentos);
+    let permitido: boolean;
+    try {
+      permitido = await revisarYRegistrarIntento(supabase, solicitud, hashDispositivo);
+    } catch (error) {
+      console.error("No se pudo revisar el límite de tasa:", error);
       return respuestaError("No se pudo guardar el reporte. Intenta de nuevo.");
     }
-
-    if ((cantidadIntentos ?? 0) >= 3) {
+    if (!permitido) {
       return respuestaError("Espera unos minutos antes de enviar otro reporte", 429);
-    }
-
-    const { error: errorRegistrarIntento } = await supabase.from("intento").insert({
-      hash_dispositivo: hashDispositivo,
-      ip,
-    });
-    if (errorRegistrarIntento) {
-      console.error("No se pudo registrar el intento:", errorRegistrarIntento);
-      return respuestaError("No se pudo guardar el reporte. Intenta de nuevo.");
     }
 
     const { data: municipio, error: errorMunicipio } = await supabase.rpc("municipio_de_punto", {

@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
+import { hashSha256 } from "@/lib/hash";
 import { crearClienteServidor } from "@/lib/supabase";
-
-async function hashSha256(texto: string) {
-  const resumen = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto));
-  return Array.from(new Uint8Array(resumen), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
 
 export async function POST(solicitud: Request, contexto: { params: Promise<{ id: string }> }) {
   try {
@@ -25,7 +21,7 @@ export async function POST(solicitud: Request, contexto: { params: Promise<{ id:
       .select("hash_reportante")
       .eq("id", id)
       .single();
-    if (errorReporte || !reporte || reporte.hash_reportante !== await hashSha256(token)) {
+    if (errorReporte || !reporte || reporte.hash_reportante !== hashSha256(token)) {
       return NextResponse.json({ ok: false, error: "No puedes adjuntar fotos a este reporte." }, { status: 403 });
     }
 

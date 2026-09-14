@@ -7,6 +7,7 @@ import Filtros, {
   type FiltroTipo,
 } from "@/components/Filtros";
 import Mapa from "@/components/Mapa";
+import PieDeslinde from "@/components/PieDeslinde";
 import { REPORTES_EJEMPLO } from "@/lib/datosEjemplo";
 import type { ReportePublico } from "@/lib/tipos";
 
@@ -59,12 +60,17 @@ export default function Inicio() {
               Reporte ciudadano del agua · Zona conurbada de Tampico
             </p>
           </div>
-          <a
-            href="/reportar"
-            className="rounded-lg bg-sky-400 px-4 py-2 text-sm font-bold text-sky-950"
-          >
-            Reportar
-          </a>
+          <nav className="flex items-center gap-3">
+            <a href="/seguir" className="text-sm font-semibold underline">
+              Seguir un reporte
+            </a>
+            <a
+              href="/reportar"
+              className="rounded-lg bg-sky-400 px-4 py-2 text-sm font-bold text-sky-950"
+            >
+              Reportar
+            </a>
+          </nav>
         </div>
       </header>
 
@@ -82,13 +88,7 @@ export default function Inicio() {
         </p>
       </section>
 
-      <footer className="bg-sky-950 px-4 py-3 text-center text-xs text-sky-100">
-        Proyecto ciudadano independiente. No es un canal oficial de COMAPA ni de
-        ningún organismo público.{" "}
-        <a className="underline" href="/privacidad">
-          Aviso de privacidad
-        </a>
-      </footer>
+      <PieDeslinde />
     </main>
   );
 }

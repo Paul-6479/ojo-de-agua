@@ -101,6 +101,7 @@ function contenidoPopup(reporte: ReportePublico) {
       </p>
       <p>${textoHace(diasTranscurridos(reporte.creado_en))} · ${lugar}</p>
       ${reporte.es_ejemplo ? "<small>Datos de ejemplo</small>" : ""}
+      ${reporte.id.startsWith("ejemplo-") ? "" : `<p><a href="/reporte/${escaparHtml(reporte.folio)}" style="font-weight:bold;color:#075985">Ver ficha →</a></p>`}
     </div>
   `;
 }

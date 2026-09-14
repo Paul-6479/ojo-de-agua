@@ -143,3 +143,11 @@ simplificados a ~40 m). Se usan para dibujar los contornos en el mapa y, en
 `db/schema.sql`, para que la tabla `municipio` tenga los límites reales con los
 que se decide si un reporte cae dentro de la zona conurbada. Para regenerarlos
 basta con volver a consultar Overpass y reemplazar el archivo.
+
+## Datos de ejemplo
+
+Para que el mapa no se vea vacío en la demostración, `db/semilla.sql` carga
+16 reportes de ejemplo (marcados con `es_ejemplo = true`, la interfaz los
+etiqueta así) con su bitácora y algunas confirmaciones. Se ejecuta en el
+**editor SQL de Supabase** después de aplicar `db/schema.sql`. Es idempotente:
+correrlo otra vez borra los de ejemplo anteriores y los vuelve a crear.

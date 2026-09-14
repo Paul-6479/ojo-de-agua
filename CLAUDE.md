@@ -404,7 +404,7 @@ baja llamadas al conmutador.
 |---|---|---|
 | **1** | Cimientos: Next.js desplegado en Vercel, esquema con PostGIS aplicado en Supabase, mapa MapLibre centrado en la conurbación con datos de ejemplo | ✅ (desplegado en Vercel el 2026-09-14) |
 | **2** | Reportar: GPS + pin arrastrable, catálogo con iconos, foto comprimida sin EXIF, guardado real en Supabase, folio | ✅ 2026-09-13 |
-| **3** | Ver y seguir: ficha pública con bitácora, consulta por folio, botón «yo también», detección preventiva de duplicados | ⬜ |
+| **3** | Ver y seguir: ficha pública con bitácora, consulta por folio, botón «yo también», detección preventiva de duplicados | ✅ 2026-09-14 (falta prueba visual en navegador) |
 | **4** | Panel de operador (fase B simulada): login, roles, bandeja, cambio de estatus con nota, fecha estimada, cierre con evidencia | ⬜ |
 | **5** | Portada de impacto: litros estimados perdidos, reportes sin atender, días promedio, ranking de colonias. **Es la semana que da la calificación.** | ⬜ |
 | **6** | Comunicación bidireccional: avisos de cortes y tandeo con zona afectada en el mapa | ⬜ |
@@ -455,9 +455,34 @@ baja llamadas al conmutador.
 - Codex no puede correr el build de Turbopack en su sandbox (usa
   `--webpack`); Claude debe correr `npm run build` normal para verificar.
 
-**Siguiente (semana 3):** ficha pública por folio con bitácora, consulta por
-folio, botón «yo también» (`confirmacion`), y cargar los datos de ejemplo en
-la base con `es_ejemplo = true` para que el mapa no se vea vacío en la demo.
+**Semana 3 (2026-09-14):** ficha pública `/reporte/[folio]` (Server
+Component, `src/lib/consultas.ts` lee `reporte_publico` + bitácora + fotos
+aprobadas), `POST /api/reportes/[id]/confirmar` («yo también» / «ya la
+arreglaron», tabla `confirmacion`, evento en bitácora), página `/seguir`,
+mini-mapa MapLibre no interactivo cargado en diferido
+(`components/reporte/MapaMini*.tsx`), helpers compartidos `lib/hash.ts` y
+`lib/limiteTasa.ts`, y `db/semilla.sql` (16 reportes `es_ejemplo`, ya
+aplicado en Supabase: folios `OJO-2026-0004` a `0019`). La instrucción de la
+tanda vive en `docs/codex/tanda-3-ver-y-seguir.md`.
+
+**Lecciones de la tanda 3:**
+- **Codex agotó su cuota de ChatGPT (bloqueado hasta 2026-10-13)** tras
+  entregar 6 archivos. Claude terminó el resto a mano. Si Codex vuelve a
+  fallar, no insistir: seguir directo.
+- El agente `codex:codex-rescue` corre en sandbox de **solo lectura** salvo
+  que se invoque el companion con `--write` (`codex-companion.mjs task
+  --write --fresh "..."`). Sin eso Codex no puede tocar archivos.
+- **MapTiler no da mapas estáticos en el plan gratuito** («Invalid key»
+  aunque las teselas funcionen). Para mapas chicos usar MapLibre con
+  `interactive: false` y `next/dynamic` (`ssr: false`) desde un envoltorio
+  cliente.
+- El linter de React 19 prohíbe `setState` directo en `useEffect`; para leer
+  `localStorage` se usa `useSyncExternalStore` (ver `useListaLocal` en
+  `src/lib/dispositivo.ts`).
+
+**Siguiente (semana 4):** panel de operador (fase B simulada): login con
+Supabase Auth, tabla `usuario` con roles, bandeja, cambio de estatus con nota,
+fecha estimada, cierre con evidencia.
 
 **Lista original de la semana 1** (ya cumplida; se conserva como referencia):
 1. `db/schema.sql` — esquema completo con PostGIS, enumerados, índices, la
