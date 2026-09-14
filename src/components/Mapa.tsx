@@ -100,7 +100,12 @@ export default function Mapa({ reportes, alSeleccionar }: MapaProps) {
   // useRef guarda valores que sobreviven entre renderizados sin provocar uno nuevo.
   // El mapa vive aquí porque MapLibre maneja su propio DOM, fuera del árbol de React.
   const mapa = useRef<maplibregl.Map | null>(null);
-  const datosIniciales = useRef(reportes);
+  // Siempre guarda la lista más reciente: si los reportes llegan de Supabase
+  // antes de que el mapa termine de cargar, el mapa los toma de aquí al arrancar.
+  const reportesRecientes = useRef(reportes);
+  useEffect(() => {
+    reportesRecientes.current = reportes;
+  }, [reportes]);
   const alSeleccionarRef = useRef(alSeleccionar);
 
   // Se guarda la función más reciente en un ref para que el mapa no se
@@ -143,7 +148,7 @@ export default function Mapa({ reportes, alSeleccionar }: MapaProps) {
     nuevoMapa.on("load", () => {
       nuevoMapa.addSource(FUENTE_REPORTES, {
         type: "geojson",
-        data: reportesAGeoJSON(datosIniciales.current),
+        data: reportesAGeoJSON(reportesRecientes.current),
         cluster: true,
         clusterRadius: 50,
       });

@@ -402,8 +402,8 @@ baja llamadas al conmutador.
 
 | Semana | Entrega | Estado |
 |---|---|---|
-| **1** | Cimientos: Next.js desplegado en Vercel, esquema con PostGIS aplicado en Supabase, mapa MapLibre centrado en la conurbación con datos de ejemplo | 🟡 **en curso** |
-| **2** | Reportar: GPS + pin arrastrable, catálogo con iconos, foto comprimida sin EXIF, guardado real en Supabase, folio | ⬜ |
+| **1** | Cimientos: Next.js desplegado en Vercel, esquema con PostGIS aplicado en Supabase, mapa MapLibre centrado en la conurbación con datos de ejemplo | ✅ (falta solo el despliegue en Vercel) |
+| **2** | Reportar: GPS + pin arrastrable, catálogo con iconos, foto comprimida sin EXIF, guardado real en Supabase, folio | ✅ 2026-09-13 |
 | **3** | Ver y seguir: ficha pública con bitácora, consulta por folio, botón «yo también», detección preventiva de duplicados | ⬜ |
 | **4** | Panel de operador (fase B simulada): login, roles, bandeja, cambio de estatus con nota, fecha estimada, cierre con evidencia | ⬜ |
 | **5** | Portada de impacto: litros estimados perdidos, reportes sin atender, días promedio, ranking de colonias. **Es la semana que da la calificación.** | ⬜ |
@@ -415,14 +415,44 @@ baja llamadas al conmutador.
 
 ## 9. Estado actual del código
 
-**Hecho:**
-- Proyecto Next.js inicializado en este directorio con TypeScript, Tailwind CSS
-  v4, ESLint, carpeta `src/` y alias de importación `@/*`.
-- Versiones instaladas: **Next.js 16.3.5**, React 19.2.8, Tailwind 4.
-- Solo existe la plantilla por defecto: `src/app/layout.tsx`, `src/app/page.tsx`,
-  `src/app/globals.css`.
+**Hecho (semanas 1 y 2, verificado en navegador y con `curl` el 2026-09-13):**
+- Next.js 16.3.5 + React 19.2.8 + Tailwind 4. Esquema `db/schema.sql`
+  **aplicado en Supabase** (proyecto `cadfgpbbweztplthgdio`) vía MCP, con las
+  funciones `reportes_cercanos` y `municipio_de_punto`. Bucket de Storage
+  `fotos-reportes` creado (lectura pública, 3 MB, JPEG/WebP).
+- Portada `/` con mapa MapLibre, clustering, filtros, popups. Lee datos reales
+  de `GET /api/reportes` (GeoJSON, caché 30–60 s) y cae a `datosEjemplo.ts` si
+  la base está vacía.
+- Flujo `/reportar` en tres pasos (`src/components/reportar/`): GPS + pin
+  arrastrable → tipo con iconos + aviso de duplicados (`/api/reportes/cercanos`)
+  + severidad/descripción/referencia/colonia → fotos comprimidas en `canvas`
+  (sin EXIF) + envío → confirmación con folio persistente en `localStorage`.
+- `POST /api/reportes`: validación en servidor (`validarReporte.ts`) →
+  honeypot → límite de tasa (3 por hash/IP cada 10 min, tabla `intento`) →
+  límite geográfico (`municipio_de_punto`; fuera de zona se guarda como
+  `rechazado` e invisible) → inserta `reporte` + `evento_reporte`.
+- `POST /api/reportes/[id]/foto`: solo con el token del creador, máx. 3 fotos.
+- Primer reporte real en la base: `OJO-2026-0001`.
 
-**Pendiente de la semana 1** (esto es lo siguiente que hay que delegar a Codex):
+**Lecciones de la tanda 2 de Codex** (errores que Claude corrigió a mano):
+- El honeypot rechazaba cuando el campo venía `undefined`; debe rechazar solo
+  si viene *con contenido*.
+- La columna `intento.ip` es `inet`: si no hay `x-forwarded-for` se guarda
+  `null`, nunca un texto como «desconocida».
+- El límite de tasa debe filtrar en la consulta (`.or(...)` + `count`), no
+  traer todas las filas y filtrar en JS.
+- **Carrera en `Mapa.tsx`:** el `fetch` de reportes reales termina antes del
+  `load` de MapLibre; el mapa debe leer la lista más reciente desde un `ref`
+  actualizado en un `useEffect` (el linter de React prohíbe escribir refs en
+  el render).
+- Codex no puede correr el build de Turbopack en su sandbox (usa
+  `--webpack`); Claude debe correr `npm run build` normal para verificar.
+
+**Siguiente (semana 3):** ficha pública por folio con bitácora, consulta por
+folio, botón «yo también» (`confirmacion`), y cargar los datos de ejemplo en
+la base con `es_ejemplo = true` para que el mapa no se vea vacío en la demo.
+
+**Lista original de la semana 1** (ya cumplida; se conserva como referencia):
 1. `db/schema.sql` — esquema completo con PostGIS, enumerados, índices, la
    función `reportes_cercanos` y las políticas RLS. Comentado en español porque
    es entregable de la materia.

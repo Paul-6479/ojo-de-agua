@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Filtros, {
   esEstatusAbierto,
   type FiltroEstatus,
@@ -8,15 +8,37 @@ import Filtros, {
 } from "@/components/Filtros";
 import Mapa from "@/components/Mapa";
 import { REPORTES_EJEMPLO } from "@/lib/datosEjemplo";
+import type { ReportePublico } from "@/lib/tipos";
 
-// Toda la página es un componente de cliente porque los filtros y el mapa
-// reaccionan al toque sin recargar. En la semana 2 los datos vendrán de Supabase.
 export default function Inicio() {
   const [estatusSeleccionado, cambiarEstatus] = useState<FiltroEstatus>("todos");
   const [tipoSeleccionado, cambiarTipo] = useState<FiltroTipo>("todos");
+  const [reportes, cambiarReportes] = useState<ReportePublico[]>(REPORTES_EJEMPLO);
+  const [cargando, cambiarCargando] = useState(true);
+  const [sonEjemplo, cambiarSonEjemplo] = useState(true);
+
+  useEffect(() => {
+    const cargarReportes = async () => {
+      try {
+        const respuesta = await fetch("/api/reportes");
+        const coleccion = await respuesta.json();
+        if (!respuesta.ok || !Array.isArray(coleccion.features)) return;
+        const reales = coleccion.features.map((feature: { properties: ReportePublico }) => feature.properties);
+        if (reales.length > 0) {
+          cambiarReportes(reales);
+          cambiarSonEjemplo(false);
+        }
+      } catch {
+        // Los datos de ejemplo mantienen útil la demo si Supabase está vacío o no responde.
+      } finally {
+        cambiarCargando(false);
+      }
+    };
+    void cargarReportes();
+  }, []);
 
   const reportesFiltrados = useMemo(() => {
-    return REPORTES_EJEMPLO.filter((reporte) => {
+    return reportes.filter((reporte) => {
       const abierto = esEstatusAbierto(reporte.estatus);
       const coincideEstatus =
         estatusSeleccionado === "todos" ||
@@ -25,7 +47,7 @@ export default function Inicio() {
         tipoSeleccionado === "todos" || reporte.tipo === tipoSeleccionado;
       return coincideEstatus && coincideTipo;
     });
-  }, [estatusSeleccionado, tipoSeleccionado]);
+  }, [estatusSeleccionado, tipoSeleccionado, reportes]);
 
   return (
     <main className="flex min-h-dvh flex-col bg-sky-50 text-slate-950">
@@ -56,7 +78,7 @@ export default function Inicio() {
       <section className="relative min-h-[420px] flex-1">
         <Mapa reportes={reportesFiltrados} />
         <p className="absolute left-3 top-3 rounded-full bg-sky-950 px-3 py-2 text-sm font-semibold text-white shadow">
-          {reportesFiltrados.length} reportes · datos de ejemplo
+          {cargando ? "Cargando…" : sonEjemplo ? `${reportesFiltrados.length} reportes · datos de ejemplo` : `${reportesFiltrados.length} reportes`}
         </p>
       </section>
 

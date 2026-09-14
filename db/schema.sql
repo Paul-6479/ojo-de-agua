@@ -178,6 +178,18 @@ language sql stable security definer as $$
     and ST_DWithin(base.ubicacion, ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography, radio_metros);
 $$;
 
+-- Determina el municipio de un punto sin exponer la tabla de polígonos al navegador.
+create or replace function municipio_de_punto(lat double precision, lon double precision)
+returns municipio_nombre
+language sql stable
+set search_path = public
+as $$
+  select nombre
+  from municipio
+  where ST_Covers(poligono, ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography)
+  limit 1;
+$$;
+
 alter table municipio enable row level security;
 alter table usuario enable row level security;
 alter table reporte enable row level security;
@@ -201,3 +213,4 @@ create policy "anon lee avisos vigentes" on aviso for select to anon using (
 alter function asignar_folio_reporte() set search_path = public;
 alter function completar_ubicacion_reporte() set search_path = public;
 alter function reportes_cercanos(double precision, double precision, integer, integer) set search_path = public;
+alter function municipio_de_punto(double precision, double precision) set search_path = public;

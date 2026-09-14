@@ -22,10 +22,23 @@ En México un *ojo de agua* es un manantial; "ojo" también es vigilancia.
 
 ## Estado del proyecto
 
-🟡 **En construcción (semana 1 de 8).** Ya están el esquema PostGIS con RLS,
-los tipos y cliente de Supabase, y el mapa MapLibre con 16 reportes de ejemplo
-filtrables. Lo que sigue es el flujo para crear un reporte. Ver el plan completo
-en [`CLAUDE.md`](./CLAUDE.md).
+🟡 **En construcción (semana 2 de 8).** Ya están el esquema PostGIS con RLS,
+el mapa público y el flujo móvil para crear reportes. Ver el plan completo en
+[`CLAUDE.md`](./CLAUDE.md).
+
+## Reportar un problema
+
+Desde el botón **Reportar**, el flujo guía a la persona en tres pantallas: fija
+la ubicación con GPS y un pin arrastrable, elige el tipo y severidad del
+problema, y puede adjuntar hasta tres fotos. Las fotos se recomprimen en el
+teléfono para quitar metadatos EXIF, incluidas posibles coordenadas GPS. Al
+final recibe un folio persistente en su navegador.
+
+El formulario usa tres capas antispam sin pedir cuenta: un campo oculto para
+bots (honeypot), límite de tres intentos por IP o dispositivo cada diez minutos,
+y revisión automática de que el punto pertenezca a Tampico, Ciudad Madero o
+Altamira. Los reportes fuera de esa zona se guardan para la bitácora, pero no
+se publican.
 
 ## Stack
 
