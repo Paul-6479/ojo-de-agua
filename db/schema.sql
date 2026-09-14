@@ -196,3 +196,8 @@ create policy "anon lee avisos vigentes" on aviso for select to anon using (
   (vigente_desde is null or vigente_desde <= now()) and (vigente_hasta is null or vigente_hasta >= now())
 );
 -- Toda escritura pasa por rutas de servidor con service_role, que ignora RLS.
+
+-- Fijar el search_path evita que un usuario malicioso redirija estas funciones a otro esquema (aviso del linter de Supabase).
+alter function asignar_folio_reporte() set search_path = public;
+alter function completar_ubicacion_reporte() set search_path = public;
+alter function reportes_cercanos(double precision, double precision, integer, integer) set search_path = public;
