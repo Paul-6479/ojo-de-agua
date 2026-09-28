@@ -105,6 +105,7 @@ historial y respeta el mismo límite de tasa que la creación de reportes.
 | `/api/panel/fecha-estimada` | POST | Solo operador o admin |
 | `/api/panel/foto` | POST, PATCH | Subir evidencia / aprobar u ocultar |
 | `/api/panel/aviso` | POST, PATCH | Publicar / retirar aviso |
+| `/api/tareas/mantenimiento` | GET | Tarea diaria del cron. Exige `Authorization: Bearer $CRON_SECRET`; devuelve 401 sin él |
 
 Todas las escrituras se validan en el servidor y usan `SUPABASE_SERVICE_ROLE_KEY`;
 el navegador nunca escribe en Supabase. Las rutas de `/api/panel/**` verifican la
@@ -156,9 +157,13 @@ componente ni la subas al repositorio.
 1. Crea un proyecto en [supabase.com](https://supabase.com) (no pide tarjeta).
 2. Abre **SQL Editor** → **New query**.
 3. Pega el contenido de `db/schema.sql` y ejecútalo. El archivo activa PostGIS,
-   crea las tablas, índices, la función `reportes_cercanos` y las políticas RLS.
-4. Verifica en **Table Editor** que aparezcan las tablas `reporte`,
-   `evento_reporte`, `foto` y `confirmacion`.
+   crea las tablas, índices, las vistas, todas las funciones y las políticas RLS.
+4. Verifica en **Table Editor** que aparezcan `reporte`, `evento_reporte`,
+   `foto`, `confirmacion`, `aviso`, `usuario` e `intento`.
+
+`db/schema.sql` **ya incluye todo**, así que en una base nueva no hace falta
+aplicar nada más. Los archivos de `db/migraciones/` son solo para actualizar una
+base que ya existía: ver [`docs/migraciones.md`](./docs/migraciones.md).
 
 > Los proyectos gratuitos de Supabase se **pausan tras ~1 semana sin uso**. Si
 > el mapa aparece vacío o da error de conexión, entra al panel de Supabase y
@@ -189,6 +194,8 @@ db/schema.sql                 Esquema completo, comentado en español
 db/migraciones/               Cambios sobre una base que ya existe (ver docs/migraciones.md)
 db/semilla.sql                Reportes de ejemplo
 db/semilla-avisos.sql         Avisos de ejemplo, con fechas relativas a now()
+docs/codex/                   Instrucciones de las tandas delegadas a Codex (histórico)
+scripts/                      Copia el worker de MapLibre (ver «Trampas» en la guía del código)
 vercel.json                   Cron de la tarea diaria de mantenimiento
 
 src/proxy.ts                  Refresca la cookie de sesión (antes se llamaba middleware.ts)
@@ -221,6 +228,8 @@ src/lib/colaOffline.ts        Cola de reportes sin señal en localStorage
 src/lib/estadisticas.ts       Tipos y formato de las cifras de impacto
 src/lib/avisos.ts             Tipos y textos de los avisos
 src/lib/dispositivo.ts        Token anónimo y folios recientes en localStorage
+src/lib/foto.ts               Recomprime la foto en el navegador (y así borra el EXIF)
+src/lib/iconoPwa.tsx          Dibuja los iconos de la PWA con next/og
 src/lib/hash.ts               SHA-256 del token del dispositivo
 src/lib/tipos.ts              Tipos espejo del esquema y transiciones de estatus
 src/lib/datosEjemplo.ts       Reportes de respaldo para la demo

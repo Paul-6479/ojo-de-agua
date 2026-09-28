@@ -687,12 +687,25 @@ Codex (Codex lee `AGENTS.md`, no este archivo — mantener ambos en sincronía).
 
 ## 10. Pendientes del autor (Claude no puede hacerlos)
 
-1. **Crear el proyecto en Supabase** (supabase.com, no pide tarjeta). Anotar la
-   URL del proyecto, la clave `anon` y la clave `service_role` (esta última va
-   solo en `.env.local` y en Vercel, nunca en código ni en el navegador).
-2. **Obtener una clave gratuita de MapTiler** (maptiler.com) para las teselas.
-3. Copiar `.env.local.example` a `.env.local` y llenar las cuatro variables.
-4. Aplicar `db/schema.sql` en el editor SQL de Supabase cuando exista.
+**Todo lo de configuración ya está hecho** (2026-09-28): proyecto de Supabase
+creado y con el esquema y las 5 migraciones aplicadas, clave de MapTiler,
+`.env.local` completo, las 5 variables cargadas en Vercel, cuenta de prueba del
+panel creada y el cron de mantenimiento corriendo.
+
+Lo que queda **no es trabajo de código**, y es justamente lo que decide si el
+proyecto convence:
+
+1. **Fotografiar y cargar 30–50 problemas reales en Tampico, Madero y Altamira.**
+   Es el riesgo dominante del proyecto (§7.6): un mapa con 16 reportes de ejemplo
+   no convence a nadie, y esto no lo puede hacer nadie más que alguien que esté
+   físicamente ahí.
+2. **Probar el flujo de reporte en un teléfono real, en la calle, con sol y mala
+   señal.** Es la condición de uso que dicta todo el diseño de §7.5 y nunca se ha
+   probado en esas condiciones.
+3. **Ensayar la presentación** con `docs/presentacion.md` en la mano, y correr su
+   lista de verificación el día anterior.
+4. **Decidir las tres preguntas abiertas de §12** (identidad del proyecto,
+   momento de buscar a COMAPA, quién lo opera después de la materia).
 
 ---
 

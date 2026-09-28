@@ -155,6 +155,9 @@ cuadrilla, orden_trabajo            (fase B, preparadas y sin usar todavía)
 | vista `reporte_publico` | Lo único que el navegador puede leer. Coordenadas redondeadas a ~25 m | `anon` |
 | vista `bandeja_operador` | La bandeja del panel. Trae **ubicación exacta** | solo `service_role` (revocada a `anon`) |
 | `reportes_cercanos()` | Posibles duplicados antes de crear | `anon` |
+| `asignar_folio_reporte()` | *Trigger*: asigna el folio al insertar | automática |
+| `completar_ubicacion_reporte()` | *Trigger*: arma el punto PostGIS a partir de latitud y longitud | automática |
+| `litros_perdidos_reporte()` | Litros estimados de un reporte suelto (la portada suma en bloque) | servidor |
 | `municipio_de_punto()` | Límite geográfico del antispam | servidor |
 | `registrar_confirmacion()` | Confirmación + bitácora en una transacción | servidor |
 | `confirmaciones_resuelto()` | Cierres comunitarios, incluidos los duplicados fusionados | servidor |

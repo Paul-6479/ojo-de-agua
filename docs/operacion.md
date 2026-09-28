@@ -113,8 +113,11 @@ colgado en estado `UNKNOWN`. Siempre por GitHub.
 
 ## 6. Ocultar un reporte (spam, falso, ofensivo)
 
-**Cuándo:** alguien reporta contenido inapropiado. Todavía no hay panel de
-moderación (semana 4), así que se hace en SQL.
+**Cuándo:** alguien reporta contenido inapropiado.
+
+El panel ya permite **cambiar el estatus** de un reporte y **ocultar sus fotos**,
+pero no tiene botón para quitar un reporte del mapa (`visible = false`). Para eso
+sigue haciendo falta SQL. Si lo que sobra es solo la foto, usa el panel (§7).
 
 ```sql
 -- 1. Localizar
@@ -139,18 +142,31 @@ y registra otro evento. El historial queda completo en ambos sentidos.
 **Cuándo:** alguien pide bajar una foto de su propiedad o donde aparece una
 persona identificable.
 
+**Lo normal es hacerlo desde el panel:** abre `/panel/reporte/<folio>`, busca la
+foto y pulsa **«Ocultar del público»**. Deja de verse al instante y el archivo se
+conserva por si la petición estaba equivocada.
+
+**Borrado definitivo** (solo si quien lo pidió exige que desaparezca):
+
 1. Supabase → **Storage → fotos-reportes** → localiza el archivo (la ruta
    está en la tabla `foto`, columna `ruta_storage`) → **Delete**.
 2. SQL: `delete from foto where ruta_storage = '<ruta>';`
-3. Responde a quien lo pidió. Las fotos nuevas no se muestran hasta
-   aprobarse (`foto.aprobada = true`), así que este caso debería ser raro.
+3. Responde a quien lo pidió.
+
+Las fotos nuevas no se muestran hasta aprobarse (`foto.aprobada = true`), así que
+este caso debería ser raro.
 
 ---
 
 ## 8. Cambiar el estatus de un reporte a mano
 
 **Cuándo:** un vecino confirma por otro medio que ya se reparó, o hay que
-corregir un error. Hasta que exista el panel de operador:
+corregir un error.
+
+**Primero intenta el panel:** `/panel/reporte/<folio>` cambia el estatus con nota
+y lo registra en la bitácora solo. Pero el panel firma cada cambio como `comapa`
+(operador) o `moderador`, y **no puede registrar un cambio con origen
+`comunidad`** — para eso, y solo para eso, hace falta SQL:
 
 ```sql
 update reporte set estatus = 'resuelto', origen_estatus = 'comunidad', cerrado_en = now()
