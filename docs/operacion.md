@@ -187,3 +187,84 @@ Proyecto individual: el responsable es el autor. Contacto por *issues* en el
 repositorio <https://github.com/Paul-6479/ojo-de-agua>. Para incidentes de
 Supabase o Vercel, sus páginas de estado: <https://status.supabase.com> y
 <https://www.vercel-status.com>.
+
+## Panel de operador (semana 4)
+
+El panel vive en `/panel` y es la **fase B simulada**: demuestra en vivo cómo se
+vería el canal COMAPA↔ciudadanía sin que exista todavía un convenio. Todo lo que
+se cambia ahí sale en la ficha pública etiquetado como «según COMAPA».
+
+### Cuenta de prueba (ya creada)
+
+| | |
+|---|---|
+| **Correo** | `demo.comapa@ojodeagua.mx` |
+| **UUID** | `fe0f7fda-d9e9-46d4-8d7f-99d83f35729a` |
+| **Rol** | `operador` — puede hacer todo lo que se demuestra |
+| **Creada** | 2026-09-28, ya confirmada (no hay que validar ningún correo) |
+| **Contraseña** | **no se guarda en este repositorio** |
+
+Sirve para probar y demostrar el panel completo: bandeja, cambio de estatus con
+nota, fecha comprometida, moderación de fotos y cierre con evidencia.
+
+**La contraseña se queda fuera del repositorio a propósito.** Aunque el repo sea
+privado hoy, con esa cuenta se puede alterar el estatus de reportes que sí se
+publican en el mapa público, y un repositorio es el lugar equivocado para una
+credencial que abre una consola de operación. Guárdala en tu gestor de
+contraseñas. Si se pierde: Authentication → Users → el usuario → *Reset
+password*.
+
+### Crear otro usuario de panel
+
+1. **Authentication → Users → Add user**: correo y contraseña. Marcar
+   «Auto Confirm User» para no depender del correo de confirmación.
+2. Copiar el `id` (UUID) del usuario recién creado.
+3. En el editor SQL, darle el rol:
+
+   ```sql
+   insert into usuario (id, rol) values ('<UUID-del-usuario>', 'operador')
+   on conflict (id) do update set rol = 'operador';
+   ```
+
+Para demostrar la diferencia de roles conviene tener también un `moderador`: ese
+no puede comprometer fechas y sus cambios se etiquetan «según moderación» en vez
+de «según COMAPA».
+
+Roles que abren el panel: `moderador`, `operador`, `admin`. Un `ciudadano` con
+cuenta entra a la app pero el panel lo rechaza con un aviso.
+
+### Qué puede hacer cada rol
+
+| Acción | moderador | operador | admin |
+|---|---|---|---|
+| Ver la bandeja y las fichas | sí | sí | sí |
+| Cambiar estatus (con nota en bitácora) | sí, se registra como «según moderación» | sí, «según COMAPA» | sí, «según COMAPA» |
+| Comprometer fecha de resolución | **no** | sí | sí |
+| Aprobar u ocultar fotos | sí | sí | sí |
+| Subir evidencia del «después» | sí | sí | sí |
+
+La restricción de la fecha no es cosmética: §7.3 de `CLAUDE.md` dice que solo un
+compromiso real de COMAPA merece llamarse «fecha estimada de resolución». Se
+verifica en el servidor, no solo escondiendo el formulario.
+
+### Reglas que impone el servidor
+
+- **Transiciones válidas**: `TRANSICIONES` en `src/lib/tipos.ts`. No se puede
+  saltar de `recibido` a `cerrado`; el `<select>` del navegador es una sugerencia
+  y la ruta lo vuelve a comprobar.
+- **Cerrar exige evidencia**: al menos una foto con `momento = 'despues'` y
+  `aprobada = true`. Sin eso la ruta devuelve 409.
+- **La bitácora es inmutable**: cada cambio inserta un `evento_reporte` con
+  autor, rol, nota y origen, dentro de la misma transacción que el cambio
+  (función `cambiar_estatus_reporte`).
+- **Cerrar o resolver** fija `cerrado_en`; **reabrir** lo limpia.
+
+### Sesión
+
+La sesión es de Supabase Auth en cookies (`@supabase/ssr`). `src/proxy.ts`
+—antes se llamaba `middleware.ts`— solo refresca la cookie; **la autorización de
+verdad se revisa en cada página y en cada ruta** con `obtenerUsuarioSesion()` y
+`exigirOperador()`. El proxy no es una barrera de seguridad, es una comodidad.
+
+El cliente de sesión usa la clave `anon` y solo sirve para saber *quién* pide;
+las escrituras siguen yendo por `service_role`, como manda `AGENTS.md`.

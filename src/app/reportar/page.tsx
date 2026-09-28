@@ -6,6 +6,8 @@ import PasoUbicacion from "@/components/reportar/PasoUbicacion";
 import PasoProblema from "@/components/reportar/PasoProblema";
 import PasoEnviar, { type FotoPreparada } from "@/components/reportar/PasoEnviar";
 import Confirmacion from "@/components/reportar/Confirmacion";
+import ColaOffline from "@/components/ColaOffline";
+import { encolarReporte } from "@/lib/colaOffline";
 import { obtenerTokenDispositivo } from "@/lib/dispositivo";
 import type { Severidad, TipoProblema } from "@/lib/tipos";
 
@@ -19,7 +21,7 @@ export default function Reportar() {
   const [fotos, cambiarFotos] = useState<FotoPreparada[]>([]);
   const [enviando, cambiarEnviando] = useState(false);
   const [error, cambiarError] = useState("");
-  const [confirmacion, cambiarConfirmacion] = useState<{ folio: string; publicado: boolean; mensaje?: string } | null>(null);
+  const [confirmacion, cambiarConfirmacion] = useState<{ folio: string; publicado: boolean; mensaje?: string; pendiente?: boolean } | null>(null);
   const actualizar = (cambios: Partial<Borrador>) => cambiarBorrador((actual) => ({ ...actual, ...cambios }));
 
   useEffect(() => {
@@ -40,11 +42,23 @@ export default function Reportar() {
         if (!subida.ok) fotoFallo = true;
       }
       cambiarConfirmacion({ folio: resultado.folio, publicado: resultado.publicado, mensaje: fotoFallo ? "El reporte se guardó, pero una foto no se pudo subir." : resultado.mensaje });
-    } catch { cambiarError("No se pudo enviar el reporte. Revisa tu conexión e intenta de nuevo."); }
+    } catch {
+      // Sin señal el reporte no se pierde: se guarda en el teléfono y se reintenta
+      // solo cuando vuelva el internet (§7.5 de CLAUDE.md).
+      encolarReporte({ ...borrador });
+      cambiarConfirmacion({
+        folio: "",
+        publicado: false,
+        pendiente: true,
+        mensaje: fotos.length > 0
+          ? "No hay señal. Tu reporte quedó guardado en este teléfono y se enviará solo cuando vuelva el internet, pero sin las fotos: tendrás que adjuntarlas después."
+          : undefined,
+      });
+    }
     finally { cambiarEnviando(false); }
   };
 
-  return <main className="min-h-dvh bg-sky-50 px-4 py-5 text-slate-950"><div className="mx-auto max-w-lg"><Link href="/" className="text-sm font-bold text-sky-800">← Volver al mapa</Link><header className="mt-3 border-b-2 border-sky-900 pb-3"><h1 className="text-2xl font-black">Reportar un problema</h1><p className="mt-2 text-sm font-bold text-sky-900">1 Ubicación · 2 Problema · 3 Enviar</p></header>
-    <div className="py-5">{confirmacion ? <Confirmacion {...confirmacion} /> : <>{paso === 1 && <PasoUbicacion latitud={borrador.latitud} longitud={borrador.longitud} precision={borrador.precision_gps_m} aviso={avisoUbicacion} alMoverPin={(latitud, longitud) => actualizar({ latitud, longitud, pin_movido: true })} alContinuar={() => cambiarPaso(2)} />}{paso === 2 && <PasoProblema borrador={borrador} latitud={borrador.latitud} longitud={borrador.longitud} alCambiar={actualizar} alContinuar={() => cambiarPaso(3)} />}{paso === 3 && borrador.tipo && <PasoEnviar tipo={borrador.tipo} severidad={borrador.severidad} descripcion={borrador.descripcion} referencia={borrador.referencia} colonia={borrador.colonia} fotos={fotos} alCambiarFotos={cambiarFotos} alEnviar={() => void enviar()} enviando={enviando} />}{error && <p className="mt-4 rounded-lg bg-rose-100 p-3 font-medium text-rose-950">{error}</p>}</>}</div>
+  return <main id="contenido" className="min-h-dvh bg-sky-50 px-4 py-5 text-slate-950"><div className="mx-auto max-w-lg"><Link href="/" className="text-sm font-bold text-sky-800">← Volver al mapa</Link><header className="mt-3 border-b-2 border-sky-900 pb-3"><h1 className="text-2xl font-black">Reportar un problema</h1><p className="mt-2 text-sm font-bold text-sky-900">1 Ubicación · 2 Problema · 3 Enviar</p></header>
+    <div className="py-5"><ColaOffline />{confirmacion ? <Confirmacion {...confirmacion} /> : <>{paso === 1 && <PasoUbicacion latitud={borrador.latitud} longitud={borrador.longitud} precision={borrador.precision_gps_m} aviso={avisoUbicacion} alMoverPin={(latitud, longitud) => actualizar({ latitud, longitud, pin_movido: true })} alContinuar={() => cambiarPaso(2)} />}{paso === 2 && <PasoProblema borrador={borrador} latitud={borrador.latitud} longitud={borrador.longitud} alCambiar={actualizar} alContinuar={() => cambiarPaso(3)} />}{paso === 3 && borrador.tipo && <PasoEnviar tipo={borrador.tipo} severidad={borrador.severidad} descripcion={borrador.descripcion} referencia={borrador.referencia} colonia={borrador.colonia} fotos={fotos} alCambiarFotos={cambiarFotos} alEnviar={() => void enviar()} enviando={enviando} />}{error && <p role="alert" className="mt-4 rounded-lg bg-rose-100 p-3 font-medium text-rose-950">{error}</p>}</>}</div>
     <footer className="border-t border-slate-300 pt-3 text-center text-xs text-slate-600">Proyecto ciudadano independiente. No es un canal oficial de COMAPA.</footer></div></main>;
 }

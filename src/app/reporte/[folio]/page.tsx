@@ -50,7 +50,7 @@ export default async function FichaReporte({ params }: PageProps<"/reporte/[foli
   const estatus = CATALOGO_ESTATUS[reporte.estatus];
 
   return (
-    <main className="flex min-h-dvh flex-col bg-sky-50 text-slate-950">
+    <main id="contenido" className="flex min-h-dvh flex-col bg-sky-50 text-slate-950">
       <header className="bg-sky-950 px-4 py-3 text-white shadow-lg">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
           <Link href="/" className="text-lg font-bold">💧 Ojo de Agua</Link>

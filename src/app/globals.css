@@ -17,3 +17,22 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Accesibilidad: un contorno visible y grueso al navegar con teclado. El azul
+   claro contrasta tanto sobre el encabezado oscuro como sobre las tarjetas. */
+:focus-visible {
+  outline: 3px solid #0284c7;
+  outline-offset: 2px;
+}
+
+/* Quien pidió menos movimiento en su sistema no debe sufrir transiciones. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

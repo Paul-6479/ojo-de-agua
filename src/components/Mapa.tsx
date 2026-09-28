@@ -21,12 +21,16 @@ import {
 type MapaProps = {
   reportes: ReportePublico[];
   alSeleccionar?: (reporte: ReportePublico) => void;
+  // Claves de municipio con un aviso vigente ("tampico", "madero", "altamira").
+  // Se pintan de ámbar para que el corte se vea en el mapa, no solo en el banner.
+  municipiosConAviso?: string[];
 };
 
 const FUENTE_REPORTES = "reportes";
 const CAPA_CLUSTERS = "circulos-cluster";
 const CAPA_NUMERO_CLUSTER = "numero-cluster";
 const CAPA_PUNTOS = "puntos-individuales";
+const CAPA_ZONA_AVISO = "zona-con-aviso";
 
 // Vista inicial: la zona urbana de Tampico, Ciudad Madero y Altamira. El
 // municipio de Altamira sigue 50 km más al norte, casi todo rural; si la vista
@@ -106,7 +110,7 @@ function contenidoPopup(reporte: ReportePublico) {
   `;
 }
 
-export default function Mapa({ reportes, alSeleccionar }: MapaProps) {
+export default function Mapa({ reportes, alSeleccionar, municipiosConAviso = [] }: MapaProps) {
   const contenedorMapa = useRef<HTMLDivElement>(null);
 
   // useRef guarda valores que sobreviven entre renderizados sin provocar uno nuevo.
@@ -169,6 +173,15 @@ export default function Mapa({ reportes, alSeleccionar }: MapaProps) {
         type: "fill",
         source: FUENTE_MUNICIPIOS,
         paint: { "fill-color": "#0369a1", "fill-opacity": 0.05 },
+      });
+      // Empieza sin filtro efectivo; el useEffect de abajo decide qué municipios
+      // se pintan cuando llegan los avisos.
+      nuevoMapa.addLayer({
+        id: CAPA_ZONA_AVISO,
+        type: "fill",
+        source: FUENTE_MUNICIPIOS,
+        paint: { "fill-color": "#d97706", "fill-opacity": 0.22 },
+        filter: ["in", ["get", "clave"], ["literal", []]],
       });
       nuevoMapa.addLayer({
         id: "contorno-municipios",
@@ -284,6 +297,13 @@ export default function Mapa({ reportes, alSeleccionar }: MapaProps) {
       (boton as HTMLButtonElement).click();
     });
   }, [reportes]);
+
+  // Los avisos llegan del servidor y pueden cambiar sin recrear el mapa.
+  useEffect(() => {
+    const instancia = mapa.current;
+    if (!instancia?.getLayer(CAPA_ZONA_AVISO)) return;
+    instancia.setFilter(CAPA_ZONA_AVISO, ["in", ["get", "clave"], ["literal", municipiosConAviso]]);
+  }, [municipiosConAviso]);
 
   const faltaClaveMapTiler = !process.env.NEXT_PUBLIC_MAPTILER_KEY;
 

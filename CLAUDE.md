@@ -405,11 +405,11 @@ baja llamadas al conmutador.
 | **1** | Cimientos: Next.js desplegado en Vercel, esquema con PostGIS aplicado en Supabase, mapa MapLibre centrado en la conurbación con datos de ejemplo | ✅ (desplegado en Vercel el 2026-09-14) |
 | **2** | Reportar: GPS + pin arrastrable, catálogo con iconos, foto comprimida sin EXIF, guardado real en Supabase, folio | ✅ 2026-09-13 |
 | **3** | Ver y seguir: ficha pública con bitácora, consulta por folio, botón «yo también», detección preventiva de duplicados | ✅ 2026-09-14 (falta prueba visual en navegador) |
-| **4** | Panel de operador (fase B simulada): login, roles, bandeja, cambio de estatus con nota, fecha estimada, cierre con evidencia | ⬜ |
-| **5** | Portada de impacto: litros estimados perdidos, reportes sin atender, días promedio, ranking de colonias. **Es la semana que da la calificación.** | ⬜ |
-| **6** | Comunicación bidireccional: avisos de cortes y tandeo con zona afectada en el mapa | ⬜ |
-| **7** | Pulido: identidad visual, PWA, cola offline, accesibilidad, prueba en teléfono real bajo el sol | ⬜ |
-| **8** | Cierre: datos semilla reales, documentación, aviso de privacidad, deslinde, ensayo de presentación | 🟡 adelantado: `docs/arquitectura.md`, `docs/operacion.md` y `/privacidad` existen desde 2026-09-14 |
+| **4** | Panel de operador (fase B simulada): login, roles, bandeja, cambio de estatus con nota, fecha estimada, cierre con evidencia | 🟡 código listo 2026-09-28; falta aplicar migración y crear el usuario de prueba |
+| **5** | Portada de impacto: litros estimados perdidos, reportes sin atender, días promedio, ranking de colonias. **Es la semana que da la calificación.** | 🟡 código listo 2026-09-28; falta migración |
+| **6** | Comunicación bidireccional: avisos de cortes y tandeo con zona afectada en el mapa | 🟡 código listo 2026-09-28; falta migración |
+| **7** | Pulido: identidad visual, PWA, cola offline, accesibilidad, prueba en teléfono real bajo el sol | 🟡 código listo 2026-09-28; falta la prueba en teléfono real |
+| **8** | Cierre: datos semilla reales, documentación, aviso de privacidad, deslinde, ensayo de presentación | 🟡 `docs/arquitectura.md`, `docs/operacion.md`, `docs/migraciones.md`, `docs/presentacion.md` y `/privacidad` listos; faltan las fotos reales de Tampico |
 
 ---
 
@@ -480,9 +480,115 @@ tanda vive en `docs/codex/tanda-3-ver-y-seguir.md`.
   `localStorage` se usa `useSyncExternalStore` (ver `useListaLocal` en
   `src/lib/dispositivo.ts`).
 
-**Siguiente (semana 4):** panel de operador (fase B simulada): login con
-Supabase Auth, tabla `usuario` con roles, bandeja, cambio de estatus con nota,
-fecha estimada, cierre con evidencia.
+**Revisión de la semana 3 (2026-09-28)** — arreglos ya en el código:
+- `src/lib/limiteTasa.ts`: la IP de `x-forwarded-for` se **valida** antes de
+  usarse (se interpola en un filtro de PostgREST y va a una columna `inet`; un
+  encabezado inventado producía 500 en `POST /api/reportes`). Lo que no parece
+  IP se guarda como `null`.
+- **Cupo separado por acción**: `intento.accion` (`reporte` / `confirmacion`),
+  3 reportes y 15 confirmaciones cada 10 min. Antes compartían un balde de 3 y
+  el flujo «reporto → aviso de duplicado → confirmo» se autobloqueaba.
+- Una confirmación **repetida ya no gasta cupo**.
+- `registrar_confirmacion(...)` en SQL: la confirmación y su renglón de bitácora
+  se guardan en **una sola transacción** y devuelve los conteos recalculados.
+- `confirmaciones_resuelto(...)` en SQL: los «ya la arreglaron» de los
+  duplicados fusionados cuentan para el padre, igual que los `afectado` de la
+  vista (§7.2). Antes se perdían al fusionar.
+- `esUuid` ya no exige versión/variante de UUID; `/seguir` interpreta un número
+  suelto de 4 dígitos como consecutivo, no como año.
+
+⚠️ **Pendiente del autor:** la base estaba **pausada** el 2026-09-28 (el riesgo
+de §3 se materializó). Al reactivarla hay que aplicar
+`db/migraciones/2026-09-28-confirmaciones.sql`; hasta entonces confirmar un
+reporte falla, porque la ruta llama funciones que aún no existen.
+
+**Semana 4 (2026-09-28) — panel de operador, código completo:**
+- Sesión con **Supabase Auth en cookies**: `@supabase/ssr` (dependencia nueva,
+  justificada: es la vía oficial para App Router; sin ella habría que manejar
+  las cookies de refresco a mano). `src/lib/sesion.ts` expone
+  `obtenerUsuarioSesion()` (usa `getUser()`, que **verifica** el token, no
+  `getSession()`, que solo lee la cookie) y `exigirOperador()` para las rutas.
+- `src/proxy.ts` (en Next.js 16 ya no es `middleware.ts`) solo **refresca** la
+  cookie en `/panel/*` y `/api/panel/*`. **No es la barrera de seguridad:** el
+  rol se revisa en cada página y en cada ruta.
+- Páginas: `/panel/entrar` (correo + contraseña), `/panel` (bandeja con filtros
+  por estatus y municipio, ordenada por confirmaciones y antigüedad) y
+  `/panel/reporte/[folio]` (ficha interna con ubicación exacta, acciones y
+  bitácora completa).
+- Rutas: `POST/DELETE /api/panel/sesion`, `POST /api/panel/estatus`,
+  `POST /api/panel/fecha-estimada`, `POST|PATCH /api/panel/foto`. Todas
+  verifican rol y escriben con `service_role`.
+- SQL en `db/migraciones/2026-09-28-panel-operador.sql`:
+  `cambiar_estatus_reporte` (cambio + bitácora + `origen_estatus` + `cerrado_en`
+  en una transacción, con `for update`), `fijar_fecha_estimada`, la vista
+  `bandeja_operador` (revocada a `anon`: trae ubicación exacta) y
+  `foto.subida_por`.
+- Reglas que impone el servidor: `TRANSICIONES` en `tipos.ts` (no se salta de
+  `recibido` a `cerrado`); **cerrar exige una foto del «después» aprobada**;
+  un `moderador` **no** puede comprometer fechas (§7.3) y sus cambios se
+  registran como «según moderación», no como COMAPA.
+
+⚠️ **Pendientes del autor para que el panel funcione:** reactivar Supabase,
+aplicar las dos migraciones de `db/migraciones/`, y crear el usuario de prueba
+(instrucciones en `docs/operacion.md`, sección «Panel de operador»).
+
+**Semanas 5, 6, 7 y 8 (2026-09-28) — código completo, sin aplicar en la base:**
+
+- **Semana 5 · portada de impacto.** `/` pasó de componente cliente a **Server
+  Component** (`revalidate = 300`): el mapa y los filtros se movieron a
+  `components/inicio/MapaPortada.tsx` y las cifras llegan renderizadas, sin
+  parpadeo. La función SQL `estadisticas_publicas()` devuelve todo en un solo
+  JSON (litros perdidos, sin atender más de 7 días, días promedio, **mediana** de
+  cierre con tamaño de muestra, ranking de colonias, por tipo y por municipio).
+  `MetricasImpacto` muestra el **supuesto junto a la cifra**, no en una nota al
+  pie, y traduce los litros a pipas de 10 000 L. Si la base no responde, usa
+  `ESTADISTICAS_EJEMPLO` y lo dice con un aviso ámbar (§7.6).
+- **Semana 6 · avisos de corte y tandeo.** `aviso` ganó `tipo`, `municipios[]`,
+  `colonias[]`, `publicado` y `creado_por`; la función `avisos_vigentes()` los
+  filtra por fecha en la base. Banner en la portada, página `/avisos`, y **el
+  municipio afectado se pinta de ámbar en el mapa** (capa `zona-con-aviso`
+  filtrada por la propiedad `clave` de `municipios.json`, que ya estaba cargado).
+  En el panel: `/panel/avisos` para publicar y retirar. La `fuente` nunca queda
+  vacía: si no se declara, dice «Ojo de Agua (demostración)», para no atribuirle
+  a COMAPA algo que no dijo.
+- **Semana 7 · PWA, cola offline y accesibilidad.** `src/app/manifest.ts`,
+  iconos **generados con `next/og`** en `/icono-192.png` y `/icono-512.png` (no
+  hay PNG binarios en el repo), `public/sw.js` (red primero; el caché solo es
+  respaldo, para no servir cifras viejas; nunca cachea `/api/`) y `/offline`.
+  `src/lib/colaOffline.ts` guarda el reporte en `localStorage` cuando el `fetch`
+  falla y lo reintenta en el evento `online`; **las fotos no se encolan** (un
+  Blob no cabe en localStorage) y la interfaz lo dice. Accesibilidad: enlace
+  «saltar al contenido», `:focus-visible` grueso, `prefers-reduced-motion`,
+  `role="alert"` en los errores y zoom permitido (hasta 5×).
+- **Semana 8 · cierre.** `docs/presentacion.md` (guion minuto a minuto, lista de
+  verificación previa, tabla de preguntas probables y qué **no** hacer en vivo),
+  `docs/migraciones.md` (qué migración falta y qué se degrada sin ella) y
+  `db/semilla-avisos.sql` con fechas relativas a `now()`.
+
+**Dependencia nueva:** `@supabase/ssr` (sesión en cookies). Ninguna otra.
+
+✅ **Aplicado en Supabase el 2026-09-28** (el autor reanudó el proyecto, que se
+había pausado): las 4 migraciones de `db/migraciones/` y `db/semilla-avisos.sql`.
+Verificado de punta a punta contra el servidor local: login, guardia del panel
+(307 a `/panel/entrar` sin sesión, 403 en las rutas de API), transición inválida
+rechazada con 409, transición válida + nota en bitácora con `rol = operador` y
+`origen = comapa`, fecha comprometida, «yo también» (y la repetida devolviendo
+`repetida: true` sin gastar cupo), y `x-forwarded-for` basura devolviendo 200 en
+vez del 500 de antes. Cifras reales: 16 reportes, 12 abiertos, ~2.56 millones de
+litros estimados, 8 colonias en el ranking, 2 avisos vigentes de 3.
+
+**Cuenta de prueba:** `demo.comapa@ojodeagua.mx`, rol `operador`, UUID
+`fe0f7fda-d9e9-46d4-8d7f-99d83f35729a`. **La contraseña no se guarda en el
+repositorio** a propósito (ver `docs/operacion.md`); está en el gestor de
+contraseñas del autor.
+
+**Lo que le queda al autor (Claude no puede hacerlo):**
+1. Fotografiar 30–50 problemas reales en Tampico y cargarlos: es el riesgo
+   dominante del proyecto (§7.6), no lo técnico.
+2. Probar el flujo de reporte en un teléfono real, en la calle, bajo el sol.
+3. Ensayar con `docs/presentacion.md` en la mano.
+4. Montar el *keep-alive* diario para que Supabase no se vuelva a pausar antes de
+   la presentación (§3). Sigue pendiente.
 
 **Lista original de la semana 1** (ya cumplida; se conserva como referencia):
 1. `db/schema.sql` — esquema completo con PostGIS, enumerados, índices, la

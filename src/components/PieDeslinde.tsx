@@ -6,6 +6,10 @@ export default function PieDeslinde() {
       Proyecto ciudadano independiente. No es un canal oficial de COMAPA ni de ningún organismo público. {" "}
       <Link className="underline" href="/privacidad">
         Aviso de privacidad
+      </Link>{" "}
+      ·{" "}
+      <Link className="underline" href="/panel/entrar">
+        Acceso de personal
       </Link>
     </footer>
   );

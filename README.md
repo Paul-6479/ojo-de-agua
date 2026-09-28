@@ -220,3 +220,67 @@ Para que el mapa no se vea vacío en la demostración, `db/semilla.sql` carga
 etiqueta así) con su bitácora y algunas confirmaciones. Se ejecuta en el
 **editor SQL de Supabase** después de aplicar `db/schema.sql`. Es idempotente:
 correrlo otra vez borra los de ejemplo anteriores y los vuelve a crear.
+
+## Rutas (semanas 4 a 8)
+
+### Públicas
+
+| Ruta | Qué es |
+|---|---|
+| `/` | Portada de impacto: cifras estimadas, mapa con clustering, ranking de colonias y banner de avisos vigentes |
+| `/reportar` | Flujo de reporte en tres pasos, sin cuenta, con cola offline |
+| `/reporte/[folio]` | Ficha pública con bitácora, fotos aprobadas y botones de confirmación |
+| `/seguir` | Buscar un reporte por folio |
+| `/avisos` | Cortes, tandeo y avisos vigentes |
+| `/privacidad` | Aviso de privacidad |
+| `/offline` | Página de respaldo del service worker |
+
+### Panel de personal (requiere cuenta con rol)
+
+| Ruta | Qué es |
+|---|---|
+| `/panel/entrar` | Acceso con correo y contraseña (Supabase Auth) |
+| `/panel` | Bandeja de trabajo con filtros por estatus y municipio |
+| `/panel/reporte/[folio]` | Ficha interna: cambio de estatus, fecha comprometida, moderación de fotos, cierre con evidencia |
+| `/panel/avisos` | Publicar y retirar avisos de corte y tandeo |
+
+### API
+
+| Ruta | Método | Notas |
+|---|---|---|
+| `/api/reportes` | GET | GeoJSON del mapa, caché 30–60 s |
+| `/api/reportes` | POST | Crea un reporte: honeypot, límite de tasa, límite geográfico |
+| `/api/reportes/cercanos` | GET | Posibles duplicados antes de crear |
+| `/api/reportes/[id]/confirmar` | POST | «Yo también» / «ya la arreglaron» |
+| `/api/reportes/[id]/foto` | POST | Foto del reportante, con su token |
+| `/api/estadisticas` | GET | Cifras de la portada, caché 60–300 s |
+| `/api/avisos` | GET | Avisos vigentes |
+| `/api/panel/sesion` | POST, DELETE | Entrar y salir |
+| `/api/panel/estatus` | POST | Cambio de estatus con nota |
+| `/api/panel/fecha-estimada` | POST | Solo operador o admin |
+| `/api/panel/foto` | POST, PATCH | Subir evidencia / aprobar u ocultar |
+| `/api/panel/aviso` | POST, PATCH | Publicar / retirar aviso |
+
+Todas las escrituras se validan en el servidor y usan `SUPABASE_SERVICE_ROLE_KEY`;
+el navegador nunca escribe en Supabase. Las rutas de `/api/panel/**` verifican la
+sesión de Supabase Auth y el rol en la tabla `usuario`.
+
+## Base de datos
+
+`db/schema.sql` es el esquema completo. Sobre una base que ya existe, aplicar en
+orden los archivos de `db/migraciones/` — ver **`docs/migraciones.md`**, que dice
+cuál falta y qué se degrada sin ella.
+
+Datos de demostración: `db/semilla.sql` (reportes) y `db/semilla-avisos.sql`
+(avisos, con fechas relativas a `now()`).
+
+## Documentación
+
+| Archivo | Para qué |
+|---|---|
+| `CLAUDE.md` | Documento maestro: idea, decisiones, plan y estado |
+| `AGENTS.md` | Reglas para agentes de código |
+| `docs/arquitectura.md` | Cómo está armado y por qué |
+| `docs/operacion.md` | Operar la plataforma y el panel; crear el usuario de panel |
+| `docs/migraciones.md` | Qué migración falta y cómo aplicarla |
+| `docs/presentacion.md` | Guion de la presentación, minuto a minuto |

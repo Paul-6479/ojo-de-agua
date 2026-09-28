@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
 import { hashSha256 } from "@/lib/hash";
-import { revisarYRegistrarIntento } from "@/lib/limiteTasa";
+import {
+  LIMITE_CONFIRMACIONES,
+  leerIp,
+  registrarIntento,
+  revisarLimite,
+} from "@/lib/limiteTasa";
 import { crearClienteServidor } from "@/lib/supabase";
 
 function respuestaError(error: string, status = 500) {
   return NextResponse.json({ ok: false, error }, { status });
 }
 
+// Solo comprueba la forma de un UUID; no se exige versión ni variante para no
+// rechazar identificadores válidos generados de otra manera (semillas, UUID v7).
 function esUuid(valor: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(valor);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(valor);
 }
 
 export async function POST(solicitud: Request, contexto: RouteContext<"/api/reportes/[id]/confirmar">) {
@@ -44,35 +51,31 @@ export async function POST(solicitud: Request, contexto: RouteContext<"/api/repo
     }
 
     const identificador = hashSha256(token);
-    const permitido = await revisarYRegistrarIntento(supabase, solicitud, identificador);
+    const ip = leerIp(solicitud);
+    const permitido = await revisarLimite(supabase, identificador, ip, "confirmacion", LIMITE_CONFIRMACIONES);
     if (!permitido) return respuestaError("Espera unos minutos antes de enviar otra confirmación.", 429);
 
     const comentarioLimpio = typeof comentario === "string" ? comentario.trim().slice(0, 200) || null : null;
-    const { error: errorConfirmacion } = await supabase.from("confirmacion").insert({
-      reporte_id: id,
-      identificador,
-      tipo,
-      comentario: comentarioLimpio,
+    // La función guarda la confirmación y su renglón de bitácora en una sola
+    // transacción, y devuelve los conteos ya recalculados.
+    const { data, error } = await supabase
+      .rpc("registrar_confirmacion", {
+        p_reporte_id: id,
+        p_identificador: identificador,
+        p_tipo: tipo,
+        p_comentario: comentarioLimpio,
+      })
+      .single<{ repetida: boolean; confirmaciones: number; resueltos: number }>();
+    if (error) throw error;
+
+    // Una confirmación repetida no gasta cupo: no cambió nada en la base.
+    if (!data.repetida) await registrarIntento(supabase, identificador, ip, "confirmacion");
+
+    return NextResponse.json({
+      ok: true,
+      repetida: data.repetida,
+      confirmaciones: data.confirmaciones,
     });
-
-    if (errorConfirmacion?.code === "23505") return NextResponse.json({ ok: true, repetida: true });
-    if (errorConfirmacion) throw errorConfirmacion;
-
-    const { error: errorEvento } = await supabase.from("evento_reporte").insert({
-      reporte_id: id,
-      tipo_evento: tipo === "afectado" ? "confirmacion_afectado" : "confirmacion_resuelto",
-      origen: "comunidad",
-    });
-    if (errorEvento) throw errorEvento;
-
-    const { data: reportePublico, error: errorPublico } = await supabase
-      .from("reporte_publico")
-      .select("confirmaciones")
-      .eq("id", id)
-      .single();
-    if (errorPublico) throw errorPublico;
-
-    return NextResponse.json({ ok: true, confirmaciones: reportePublico.confirmaciones });
   } catch (error) {
     console.error("No se pudo guardar la confirmación:", error);
     return respuestaError("No se pudo guardar tu confirmación. Intenta de nuevo.");

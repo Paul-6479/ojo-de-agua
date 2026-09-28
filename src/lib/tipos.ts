@@ -56,3 +56,24 @@ export const CATALOGO_ESTATUS: Record<EstatusReporte, { etiqueta: string; color:
 export const ETIQUETA_ORIGEN: Record<OrigenEstatus, string> = {
   ciudadano: "según quien reportó", comunidad: "según vecinos", moderador: "según moderación", comapa: "según COMAPA", sistema: "actualizado por el sistema",
 };
+
+export type RolUsuario = "ciudadano" | "moderador" | "operador" | "admin";
+
+export const ETIQUETA_ROL: Record<RolUsuario, string> = {
+  ciudadano: "Ciudadano", moderador: "Moderador", operador: "Operador COMAPA", admin: "Administrador",
+};
+
+// Transiciones permitidas desde el panel. El flujo principal de §4 de CLAUDE.md
+// más las ramas laterales; no se permite saltar de cualquier estado a cualquiera.
+export const TRANSICIONES: Record<EstatusReporte, EstatusReporte[]> = {
+  recibido: ["validado", "rechazado", "duplicado", "derivado"],
+  validado: ["en_cola", "rechazado", "duplicado", "derivado"],
+  en_cola: ["en_proceso", "validado", "derivado"],
+  en_proceso: ["resuelto", "en_cola", "derivado"],
+  resuelto: ["cerrado", "reabierto"],
+  cerrado: ["reabierto"],
+  reabierto: ["validado", "en_cola", "en_proceso"],
+  duplicado: ["recibido"],
+  rechazado: ["recibido"],
+  derivado: ["recibido", "cerrado"],
+};
