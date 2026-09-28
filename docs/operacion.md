@@ -300,11 +300,17 @@ La ruta devuelve **401** si el encabezado `Authorization` no trae exactamente
 `Bearer <CRON_SECRET>`. Vercel manda esa variable de entorno como encabezado
 automáticamente. Sin la comprobación, la ruta quedaría abierta a internet.
 
-**Pendiente del autor:** subir `CRON_SECRET` a Vercel (Settings → Environment
-Variables, en Production y Preview, como *Secret*). El valor ya está en
-`.env.local`, que no se sube a git. **Mientras la variable no exista en Vercel,
-el cron se dispara pero la ruta responde 401 y no hace nada** — y eso no se nota
-solo, así que conviene comprobarlo.
+`CRON_SECRET` **ya está cargada** en Production y Preview como *Secret*
+(2026-09-28), y la ruta se verificó en producción: 401 sin secreto, 401 con uno
+equivocado, y el resumen en JSON con el correcto.
+
+Si algún día hay que volver a poner la variable, ojo con dos cosas:
+
+- **Una variable nueva no tiene efecto hasta que se redespliega.** El comando que
+  funciona en este proyecto es `npx vercel redeploy <url-de-produccion>`;
+  `vercel deploy` se queda colgado en `UNKNOWN`/`BLOCKED` (ver §4).
+- **Mientras la variable no exista, el cron se dispara pero recibe 401 y no hace
+  nada**, sin avisar a nadie. Es un fallo silencioso: hay que comprobarlo a mano.
 
 ### Cómo comprobar que sigue viva
 

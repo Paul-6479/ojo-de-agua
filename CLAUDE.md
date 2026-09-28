@@ -597,9 +597,8 @@ contraseñas del autor.
    dominante del proyecto (§7.6), no lo técnico.
 2. Probar el flujo de reporte en un teléfono real, en la calle, bajo el sol.
 3. Ensayar con `docs/presentacion.md` en la mano.
-4. **Subir `CRON_SECRET` a Vercel** (Settings → Environment Variables, Production
-   y Preview, como *Secret*). El valor está en `.env.local`. Sin esa variable el
-   cron de mantenimiento se dispara pero recibe 401 y no hace nada.
+4. ✅ Hecho el 2026-09-28: `CRON_SECRET` cargada en Production y Preview, y la
+   ruta verificada en producción (401 sin secreto, JSON con el correcto).
 
 **Documentación (2026-09-28):** `docs/arquitectura.md` se actualizó —estaba
 congelado en la semana 3 y no mencionaba el panel, la sesión, el proxy, las
@@ -659,7 +658,10 @@ Codex (Codex lee `AGENTS.md`, no este archivo — mantener ambos en sincronía).
   (`SUPABASE_SERVICE_ROLE_KEY` como *Secret*). Deployment Protection está
   **apagada** a propósito (sitio público). Lecciones:
   - `vercel deploy` desde CLI se queda en `UNKNOWN`/`BLOCKED`; usar siempre
-    la vía de GitHub (`git push`).
+    la vía de GitHub (`git push`). **Pero `vercel redeploy <url>` sí funciona**
+    (probado el 2026-09-28, 46 s): es lo que hay que usar cuando se cambia una
+    variable de entorno y no hay nada que commitear, porque una variable nueva
+    no tiene efecto hasta que se redespliega.
   - Hobby bloquea despliegues (`COMMIT_AUTHOR_REQUIRED`) si el autor del
     commit no es una cuenta de GitHub del dueño. Git debe usar
     `paul.huertam@gmail.com` (ya configurado en `--global`).
