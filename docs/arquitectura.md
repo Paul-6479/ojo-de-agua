@@ -2,7 +2,14 @@
 
 Documento técnico del proyecto para la materia de proyecto integrador.
 Explica **qué se construyó, cómo está armado y por qué se tomaron las
-decisiones**. Para instalarlo y correrlo, ver el [`README.md`](../README.md).
+decisiones**.
+
+Cubre las 8 semanas del plan. Última revisión: 2026-09-28.
+
+- Para instalarlo y correrlo: [`README.md`](../README.md).
+- Para entender el código archivo por archivo y modificarlo:
+  [`guia-del-codigo.md`](./guia-del-codigo.md).
+- Para operarlo: [`operacion.md`](./operacion.md).
 
 ---
 
@@ -39,23 +46,47 @@ todas las páginas por protección legal.
 ```
    Teléfono / navegador                    Vercel (Next.js 16)                    Supabase
    ─────────────────────                   ─────────────────────                  ────────────────────
-                                                                                  
-   Portada con mapa  ───── GET /api/reportes ─────►  lee con clave anon  ───────►  vista reporte_publico
-   (MapLibre)        ◄──── GeoJSON, caché 60 s ────                                (coordenadas redondeadas)
-                                                                                  
-   Flujo /reportar   ───── POST /api/reportes ────►  valida, honeypot,   ───────►  tabla reporte
-   (3 pasos)                                          límite de tasa,               tabla evento_reporte
-                                                      límite geográfico             tabla intento
+
+   PÚBLICO (sin cuenta)
+
+   Portada            ───── Server Component ──────►  estadisticas_publicas()  ─►  reporte, confirmacion,
+   (métricas)                                          (una sola consulta)          tasa_fuga
+                      ───── GET /api/reportes ─────►  lee con clave anon  ───────►  vista reporte_publico
+   Mapa (MapLibre)    ◄──── GeoJSON, caché 60 s ────                                (coords. redondeadas)
+
+   Flujo /reportar    ───── POST /api/reportes ────►  valida, honeypot,   ───────►  reporte, evento_reporte,
+   (3 pasos)                                          límite de tasa,               intento
+                                                      límite geográfico
                                                       (clave service_role)
-                                                                                  
-   Foto comprimida   ───── subida directa ─────────────────────────────────────►  Storage fotos-reportes
-   sin EXIF          ───── POST /api/reportes/[id]/foto ───────────────────────►  tabla foto
-                                                                                  
-   Ficha /reporte/x  ───── Server Component ───────►  lee con service_role ──────►  reporte_publico,
-                                                      (solo campos públicos)        evento_reporte, foto
-                                                                                  
-   «Yo también»      ───── POST .../confirmar ─────►  hash del token,     ───────►  tabla confirmacion
-                                                      límite de tasa                tabla evento_reporte
+   Foto comprimida    ───── POST .../[id]/foto ────►  token del creador   ───────►  Storage + tabla foto
+   sin EXIF
+
+   Ficha /reporte/x   ───── Server Component ───────►  solo campos públicos ─────►  reporte_publico,
+                                                                                    evento_reporte, foto
+   «Yo también»       ───── POST .../confirmar ────►  registrar_confirmacion() ──►  confirmacion +
+                                                      (una transacción)             evento_reporte
+   /avisos            ───── Server Component ───────►  avisos_vigentes()  ───────►  tabla aviso
+
+   PANEL DE PERSONAL (con cuenta y rol)
+
+   /panel/entrar      ───── POST /api/panel/sesion ►  signInWithPassword ───────►  Supabase Auth
+                      ◄──── cookie de sesión ───────   (clave anon)
+
+   src/proxy.ts       ─────────────────────────────►  solo REFRESCA la cookie
+                                                      (no autoriza nada)
+
+   /panel (bandeja)   ───── Server Component ───────►  exigirOperador():   ───────►  vista bandeja_operador
+                                                      getUser() + rol en usuario    (ubicación EXACTA)
+
+   Cambiar estatus    ───── POST /api/panel/estatus►  valida la transición ──────►  cambiar_estatus_reporte()
+                                                      y exige evidencia             (transacción: reporte +
+                                                                                     bitácora + origen)
+   Publicar aviso     ───── POST /api/panel/aviso ─►  solo operador/admin ───────►  tabla aviso
+
+   SISTEMA
+
+   Cron de Vercel     ───── GET /api/tareas/... ───►  compara CRON_SECRET ───────►  mantenimiento_diario()
+   (1×/día)                                                                         (idempotente)
 ```
 
 Tres piezas, un solo repositorio:
@@ -82,6 +113,16 @@ Tres piezas, un solo repositorio:
 | **Vercel Hobby** | — | El autor ya tenía cuenta; despliegue automático desde GitHub |
 | **Estatus público ≠ estatus institucional** | Un solo campo de estatus | Mientras COMAPA no participe, decir «en proceso» sin base es mentirle a la gente. La interfaz siempre etiqueta de dónde sale cada estado |
 | **No mostrar tiempo estimado de resolución** | Un número calculado o inventado | Sin datos de COMAPA no hay de dónde sacarlo. Se muestra «Reportado hace N días · sin atención confirmada», que es honesto y más contundente |
+| **Autorización en las rutas de Next.js, no en RLS** | Políticas RLS por rol | Las reglas de «quién puede cambiar qué» son lógica de negocio; en TypeScript legible el autor las puede leer y modificar. RLS se usa para lo que sí le toca: que `anon` solo vea la vista pública |
+| **El proxy solo refresca la cookie** | Autorizar en el proxy | La propia documentación de Next.js advierte que el proxy no es una solución de autorización. El rol se verifica en cada página y cada ruta, donde no se puede saltar |
+| **`getUser()` y no `getSession()`** | `getSession()`, que es más rápido | `getSession()` lee la cookie sin validarla: una cookie falsificada pasaría. `getUser()` verifica el token contra Supabase |
+| **Operaciones de varios pasos en funciones SQL** | Varias consultas desde la ruta | Un fallo a media ruta dejaba la confirmación sin bitácora, o el estatus cambiado sin registro. `registrar_confirmacion` y `cambiar_estatus_reporte` son una sola transacción |
+| **Portada como Server Component** | Cliente que pide las cifras por `fetch` | Las métricas son el argumento de la presentación: deben estar en el HTML inicial, sin parpadeo ni pantalla vacía |
+| **Cifras de respaldo si la base no responde** | Mostrar un error o ceros | Una portada vacía no convence a nadie. Si Supabase está dormido se usan cifras de ejemplo **con un aviso visible** de que lo son |
+| **Zona del aviso por municipio y colonias en texto** | Dibujar polígonos a mano | No hay polígonos de colonia, y los municipales ya estaban cargados en el mapa. Dibujar zonas es una función de editor que no cabe en el plan |
+| **Iconos de la PWA generados con `next/og`** | Archivos PNG en el repositorio | El icono se edita como código, sin editor de imágenes ni binarios en git |
+| **La cola offline no guarda fotos** | Convertir la foto a texto para `localStorage` | Un par de fotos en base64 llenan la cuota del navegador. Se envía el reporte sin fotos y **la interfaz lo dice**, en vez de fingir que se guardaron |
+| **Tarea diaria idempotente** | Un contador o un `select 1` | Los cron de Vercel son «best effort»: pueden duplicarse o perderse. Las operaciones son reconciliaciones, y un `update` real es mejor keep-alive que un `select 1` |
 
 ---
 
@@ -102,8 +143,26 @@ reporte ──────< evento_reporte      (bitácora inmutable: quién, cu
 intento                             (límite de tasa: hash del dispositivo, IP, fecha)
 municipio                           (polígonos reales de OSM para el límite geográfico)
 tasa_fuga                           (litros/hora por tipo × severidad, para la métrica de impacto)
-usuario, cuadrilla, orden_trabajo, aviso   (fase B, preparadas)
+usuario ──► auth.users              (rol: ciudadano, moderador, operador, admin)
+aviso                               (cortes y tandeo: tipo, municipios[], colonias[], vigencia)
+cuadrilla, orden_trabajo            (fase B, preparadas y sin usar todavía)
 ```
+
+**Vistas y funciones** (todas en [`db/schema.sql`](../db/schema.sql)):
+
+| Nombre | Para qué | Quién la puede llamar |
+|---|---|---|
+| vista `reporte_publico` | Lo único que el navegador puede leer. Coordenadas redondeadas a ~25 m | `anon` |
+| vista `bandeja_operador` | La bandeja del panel. Trae **ubicación exacta** | solo `service_role` (revocada a `anon`) |
+| `reportes_cercanos()` | Posibles duplicados antes de crear | `anon` |
+| `municipio_de_punto()` | Límite geográfico del antispam | servidor |
+| `registrar_confirmacion()` | Confirmación + bitácora en una transacción | servidor |
+| `confirmaciones_resuelto()` | Cierres comunitarios, incluidos los duplicados fusionados | servidor |
+| `cambiar_estatus_reporte()` | Estatus + bitácora + `origen_estatus` + `cerrado_en`, en una transacción, con `for update` | servidor |
+| `fijar_fecha_estimada()` | Fecha comprometida por COMAPA + bitácora | servidor |
+| `estadisticas_publicas()` | Todas las cifras de la portada en un solo JSON | `anon` |
+| `avisos_vigentes()` | Avisos filtrados por fecha en la base | `anon` |
+| `mantenimiento_diario()` | Tarea del cron: rellena `dias_sin_atencion`, limpia `intento` | servidor |
 
 Puntos clave:
 
@@ -122,6 +181,14 @@ Puntos clave:
 - **Confirmaciones no se cuentan en la fila**: se calculan al vuelo en la
   vista, sumando las del reporte y las de sus hijos fusionados. Así un
   duplicado fusionado suma su gente al reporte principal.
+- **Transiciones válidas en un solo lugar**: `TRANSICIONES` en
+  [`src/lib/tipos.ts`](../src/lib/tipos.ts) dice de qué estado se puede pasar a
+  cuál. La interfaz lo usa para pintar los botones y **la ruta lo vuelve a
+  comprobar**, porque el `<select>` del navegador es una sugerencia, no una
+  garantía.
+- **`intento.accion`**: el límite de tasa tiene un cupo por tipo de acción
+  (3 reportes y 15 confirmaciones cada 10 minutos). Con un solo balde, el flujo
+  «reporto → me avisa de un duplicado → confirmo» se autobloqueaba.
 - **Identidad anónima**: en el primer reporte el navegador genera un token
   aleatorio (`localStorage`); el servidor guarda solo su SHA-256. Sirve para
   unicidad de confirmaciones, límite de tasa y para que el reportante pueda
@@ -151,6 +218,33 @@ Puntos clave:
   subir. Las fotos entran en cola de aprobación antes de mostrarse.
 - **Nunca** se muestra nombre, contacto ni domicilio exacto del reportante.
   Nunca se piden datos que no se usan (sin CURP, INE ni número de contrato).
+
+### Autenticación y autorización del panel
+
+El panel es la única parte con cuentas, y tiene tres capas bien separadas:
+
+1. **Quién eres** (autenticación): Supabase Auth con correo y contraseña. La
+   sesión viaja en cookies, manejada por `@supabase/ssr`. Ese cliente usa la
+   clave `anon` y **solo sirve para identificar**, nunca para escribir.
+2. **Qué puedes hacer** (autorización): `exigirOperador()` en
+   [`src/lib/sesion.ts`](../src/lib/sesion.ts) valida el token con `getUser()`
+   y lee el rol de la tabla `usuario`. Se llama **en cada página y en cada ruta
+   del panel**. `src/proxy.ts` solo refresca la cookie; no autoriza nada.
+3. **Qué escribe**: la escritura sigue yendo por `service_role`, igual que en el
+   resto de la aplicación.
+
+Reglas de rol que impone el servidor, no la interfaz:
+
+| Regla | Por qué |
+|---|---|
+| Un `moderador` no puede comprometer fechas | Solo un compromiso real de COMAPA merece llamarse «fecha estimada de resolución» |
+| Los cambios de un `moderador` se registran como `origen: moderador`, no `comapa` | La etiqueta de fuente es el argumento central del proyecto; falsearla lo destruye |
+| Cerrar exige una foto del «después» aprobada | Un cierre sin evidencia es otra promesa sin respaldo |
+| Un aviso sin fuente declarada se publica como «Ojo de Agua (demostración)» | Nunca atribuirle a COMAPA algo que COMAPA no dijo |
+
+**La tarea del cron** (`/api/tareas/mantenimiento`) compara el encabezado
+`Authorization` contra `CRON_SECRET`, que Vercel envía solo a sus propias
+invocaciones. Sin esa comprobación la ruta quedaría abierta a internet.
 
 ---
 
@@ -187,6 +281,45 @@ llamada). Agrupamiento (*clustering*) de pines: sin él, cientos de reportes
 hacen inusable el mapa en un teléfono. Contornos municipales reales
 (OpenStreetMap, ODbL) y color por estatus.
 
+### Portada de impacto
+
+Las cifras salen de una sola llamada a `estadisticas_publicas()` desde un Server
+Component, con revalidación cada 5 minutos: son tendencias, no un marcador en
+vivo. Dos decisiones de honestidad:
+
+- **Los litros perdidos son una estimación** (`tasa_fuga` × horas abiertas) y el
+  supuesto se muestra **junto a la cifra**, no en una nota al pie. La tabla
+  `tasa_fuga` está en la base, no en el código, para poder ajustarla sin
+  desplegar.
+- **Para los cierres se usa la mediana, no el promedio**, y siempre con el
+  tamaño de muestra: un reporte olvidado de 200 días inflaría un promedio.
+
+### Panel de operador (fase B simulada)
+
+Demuestra el canal COMAPA↔ciudadanía **antes de que exista el convenio**, con un
+usuario de prueba real. El operador ve la bandeja priorizada (más confirmaciones
+y más antiguos primero), cambia el estatus con una nota que el público lee, fija
+la fecha comprometida, modera fotos por privacidad y cierra con evidencia. Todo
+queda en la bitácora con autor, rol y origen, y la ficha pública pasa a decir
+«según COMAPA».
+
+### Avisos de corte y tandeo
+
+Es la funcionalidad que más le interesa a COMAPA, porque les baja llamadas al
+conmutador: es la carta de negociación del proyecto. Un aviso declara tipo,
+municipios, colonias y vigencia; la vigencia se filtra en la base. Aparece en el
+banner de la portada, en `/avisos` y **pintando de ámbar el municipio afectado en
+el mapa**, reutilizando los polígonos que el mapa ya cargaba.
+
+### Sin señal: PWA y cola offline
+
+La condición de uso real es una banqueta con dos barras de señal. La aplicación
+es instalable y su service worker va **primero a la red**: el caché es solo
+respaldo, y nunca guarda `/api/`, para no mostrar cifras viejas. Si el envío de un
+reporte falla, el reporte se guarda en `localStorage` y se reintenta solo cuando
+el navegador dispara el evento `online`. Las fotos no se encolan, y eso se le
+dice al usuario.
+
 ---
 
 ## 7. Lo que queda fuera y por qué
@@ -198,8 +331,18 @@ hacen inusable el mapa en un teléfono. Contornos municipales reales
   para nunca mezclar fuentes.
 - **Polígonos de colonias**: en la demo la colonia es texto libre normalizado.
   Conseguir polígonos oficiales (INEGI) es trabajo de datos fuera del plan.
-- **Endurecimiento** (Turnstile, moderación activa, aviso de privacidad
-  formal): preparado, no endurecido, hasta que haya público real.
+- **Endurecimiento** (Turnstile, moderación activa): preparado, no endurecido,
+  hasta que haya público real. El aviso de privacidad sí está publicado.
+- **Fusión automática de duplicados** (`ST_ClusterDBSCAN` nocturno): el diseño
+  está en `CLAUDE.md` §7.2 y el esquema lo soporta (`reporte_padre_id`, y las
+  confirmaciones de los hijos ya cuentan para el padre), pero la tarea que agrupa
+  no está escrita. Hoy la deduplicación es solo preventiva, que es la que más
+  sirve.
+- **Notificaciones y cuentas para ciudadanos**: la tabla `usuario` existe y Auth
+  ya está conectado por el panel, pero el ciudadano sigue siendo anónimo a
+  propósito. Pedir cuenta para reportar es la decisión que mataría el proyecto.
+- **Órdenes de trabajo y cuadrillas**: tablas creadas, sin interfaz. No tienen
+  sentido sin un convenio real.
 
 ## 8. Riesgo principal: adopción
 

@@ -601,6 +601,15 @@ contraseñas del autor.
    y Preview, como *Secret*). El valor está en `.env.local`. Sin esa variable el
    cron de mantenimiento se dispara pero recibe 401 y no hace nada.
 
+**Documentación (2026-09-28):** `docs/arquitectura.md` se actualizó —estaba
+congelado en la semana 3 y no mencionaba el panel, la sesión, el proxy, las
+estadísticas, la PWA ni el cron—, el README se consolidó (tenía dos secciones de
+rutas y dos de documentación, duplicadas al añadir las semanas 4–8) y se escribió
+`docs/guia-del-codigo.md`, la guía que faltaba: está dirigida al autor, que sabe
+JavaScript pero no React ni Next, y explica las cinco ideas del framework que el
+proyecto usa, el recorrido completo de un reporte archivo por archivo, dónde
+tocar para cada cambio probable y las trampas ya descubiertas.
+
 **Lista original de la semana 1** (ya cumplida; se conserva como referencia):
 1. `db/schema.sql` — esquema completo con PostGIS, enumerados, índices, la
    función `reportes_cercanos` y las políticas RLS. Comentado en español porque
