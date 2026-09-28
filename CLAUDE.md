@@ -565,6 +565,16 @@ aplicar las dos migraciones de `db/migraciones/`, y crear el usuario de prueba
   `docs/migraciones.md` (qué migración falta y qué se degrada sin ella) y
   `db/semilla-avisos.sql` con fechas relativas a `now()`.
 
+**Tarea diaria (§6, resuelve la advertencia de §3):** `vercel.json` define un cron
+a las 09:00 UTC que llama `GET /api/tareas/mantenimiento`, protegido con
+`CRON_SECRET` (Vercel lo manda como `Authorization: Bearer`). La función SQL
+`mantenimiento_diario()` rellena `dias_sin_atencion` —una columna que hasta ahora
+nadie escribía— y borra los `intento` de más de 24 h. Es **idempotente** a
+propósito: la entrega de los cron de Vercel puede duplicarse o perderse, así que
+son reconciliaciones, no incrementos (verificado: la segunda corrida devuelve
+`reportesActualizados: 0`). Hobby solo permite **una corrida al día** y la
+dispara en cualquier momento dentro de la hora. Detalles en `docs/operacion.md`.
+
 **Dependencia nueva:** `@supabase/ssr` (sesión en cookies). Ninguna otra.
 
 ✅ **Aplicado en Supabase el 2026-09-28** (el autor reanudó el proyecto, que se
@@ -587,8 +597,9 @@ contraseñas del autor.
    dominante del proyecto (§7.6), no lo técnico.
 2. Probar el flujo de reporte en un teléfono real, en la calle, bajo el sol.
 3. Ensayar con `docs/presentacion.md` en la mano.
-4. Montar el *keep-alive* diario para que Supabase no se vuelva a pausar antes de
-   la presentación (§3). Sigue pendiente.
+4. **Subir `CRON_SECRET` a Vercel** (Settings → Environment Variables, Production
+   y Preview, como *Secret*). El valor está en `.env.local`. Sin esa variable el
+   cron de mantenimiento se dispara pero recibe 401 y no hace nada.
 
 **Lista original de la semana 1** (ya cumplida; se conserva como referencia):
 1. `db/schema.sql` — esquema completo con PostGIS, enumerados, índices, la

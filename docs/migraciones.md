@@ -12,6 +12,7 @@ aplican en el editor SQL de Supabase (o por MCP) y todas son idempotentes.
 | `2026-09-28-panel-operador.sql` | `foto.subida_por`, `cambiar_estatus_reporte`, `fijar_fecha_estimada`, vista `bandeja_operador` | ✅ 2026-09-28 |
 | `2026-09-28-estadisticas.sql` | `litros_perdidos_reporte`, `estadisticas_publicas` | ✅ 2026-09-28 |
 | `2026-09-28-avisos.sql` | tipo `tipo_aviso`, columnas de `aviso`, `avisos_vigentes` | ✅ 2026-09-28 |
+| `2026-09-28-mantenimiento.sql` | `mantenimiento_diario()` (tarea diaria del cron) | ✅ 2026-09-28 |
 
 **Las cuatro están aplicadas** en el proyecto `cadfgpbbweztplthgdio` desde el
 2026-09-28, junto con `db/semilla-avisos.sql`. Se conservan aquí porque harían

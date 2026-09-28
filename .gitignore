@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# La plantilla sí se sube: solo trae nombres de variables, ningún valor real.
+# Sin esto, quien clone el repo no sabe qué variables hacen falta.
+!.env.local.example
 
 # vercel
 .vercel

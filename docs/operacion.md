@@ -268,3 +268,59 @@ verdad se revisa en cada página y en cada ruta** con `obtenerUsuarioSesion()` y
 
 El cliente de sesión usa la clave `anon` y solo sirve para saber *quién* pide;
 las escrituras siguen yendo por `service_role`, como manda `AGENTS.md`.
+
+## Tarea diaria de mantenimiento
+
+`GET /api/tareas/mantenimiento`, disparada por un cron de Vercel definido en
+`vercel.json` a las **09:00 UTC** (≈ 3:00 a.m. en Tampico).
+
+Hace dos cosas:
+
+1. **Rellena `dias_sin_atencion`** de los reportes abiertos. La ficha pública
+   calcula los días al vuelo, pero tener la columna al día permite ordenar por
+   ella en SQL y prepara la estimación estadística del nivel 1 de §7.3.
+2. **Borra los `intento` de más de 24 h.** Esa tabla solo sirve para la ventana
+   de 10 minutos del límite de tasa; sin limpieza crecería para siempre.
+
+Y de paso resuelve un problema real: **el plan gratuito de Supabase pausa el
+proyecto tras ~1 semana sin actividad**, y el peor escenario es llegar dormido al
+día de la presentación. Un `update` de verdad es mejor keep-alive que un
+`select 1`, porque toca disco y no solo la caché de conexiones.
+
+### Por qué es idempotente
+
+La entrega de los cron de Vercel es *best effort*: puede no ocurrir, o **ocurrir
+dos veces**. Por eso las dos operaciones son reconciliaciones («deja este valor
+así»), no incrementos. Correrla cinco veces seguidas da el mismo resultado que
+correrla una: la segunda corrida reporta `reportesActualizados: 0`.
+
+### Seguridad
+
+La ruta devuelve **401** si el encabezado `Authorization` no trae exactamente
+`Bearer <CRON_SECRET>`. Vercel manda esa variable de entorno como encabezado
+automáticamente. Sin la comprobación, la ruta quedaría abierta a internet.
+
+**Pendiente del autor:** subir `CRON_SECRET` a Vercel (Settings → Environment
+Variables, en Production y Preview, como *Secret*). El valor ya está en
+`.env.local`, que no se sube a git. **Mientras la variable no exista en Vercel,
+el cron se dispara pero la ruta responde 401 y no hace nada** — y eso no se nota
+solo, así que conviene comprobarlo.
+
+### Cómo comprobar que sigue viva
+
+- **En Vercel:** Settings → Cron Jobs → *View Logs*. Debe haber una invocación
+  diaria con respuesta 200.
+- **A mano:** `curl -H "Authorization: Bearer <secreto>" https://ojo-de-agua-ruby.vercel.app/api/tareas/mantenimiento`
+  Devuelve el resumen en JSON. Vale la pena hacerlo una vez al mes.
+
+### Límites del plan Hobby
+
+- **Una sola corrida al día.** Una expresión más frecuente hace fallar el
+  despliegue.
+- **La hora es aproximada:** Vercel invoca en cualquier momento dentro de la hora
+  indicada (`0 9 * * *` puede caer entre 09:00 y 09:59 UTC).
+- **Vercel no reintenta** una corrida que falle.
+
+Esto **no sustituye** la lista de verificación de `docs/presentacion.md`: el cron
+baja la probabilidad de que la base se duerma, pero revisar el sitio el día
+anterior sigue siendo la red de seguridad.
